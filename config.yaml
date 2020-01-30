@@ -1,0 +1,9 @@
+storagePath: ./packages
+database:
+  driver: sqlite3
+  connection: ":memory:"
+indexes:
+  - name: "base"
+    bases: []
+  - name: "test"
+    bases: ["base"]

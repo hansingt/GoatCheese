@@ -1,0 +1,20 @@
+{{- $reverse := index . "reverse" -}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PyPiGo</title>
+</head>
+<body>
+<table>
+    <thead>Repositories</thead>
+    <tbody>
+    {{ range .Repositories}}
+        <tr>
+            <td><a href="{{ call $reverse .Name }}">{{ .Name }}</a></td>
+        </tr>
+    {{ end }}
+    </tbody>
+</table>
+</body>
+</html>

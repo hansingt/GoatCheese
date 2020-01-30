@@ -1,0 +1,6 @@
+.idea/
+packages/
+.coverage
+coverage.html
+PyPiGo
+test.db
