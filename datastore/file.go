@@ -85,7 +85,9 @@ func (f *projectFile) Write(content io.Reader) error {
 			}
 			break
 		}
-		hashBuilder.Write(buffer[:n])
+                if _, err = hashBuilder.Write(buffer[:n]); err != nil {
+                    return err
+                }
 		if _, err = outputFile.Write(buffer[:n]); err != nil {
 			return err
 		}
