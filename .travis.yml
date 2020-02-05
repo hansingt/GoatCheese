@@ -1,8 +1,0 @@
-language: go
-
-go:
-  - "1.12"
-  - master
-
-go_import_path: github.com/hansingt/PyPiGo
-

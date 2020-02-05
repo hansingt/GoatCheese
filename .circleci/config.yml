@@ -1,0 +1,54 @@
+# .circleci/config.yml
+
+version: 2.1
+
+jobs:
+  # This build job just tests that the binary can build.
+  build:
+    docker:
+      - image: golang:1.13
+    environment:
+      # This env var should become unnecessary in Go 1.14.
+      GO111MODULE: 'on' # This string should be quoted because `on` is a bool in YAML. We want a string.
+      CGO_ENABLED: '1'  # go-sqlite3 requires cgo enabled.
+    working_directory: /go/src/github.com/hansingt/PyPiGo
+      - checkout
+      # github.com/foo/bar/cmd/baz is the import path to your main module. Your
+      # func main() should be in a file in the cmd/<binary name>/ directory. The
+      # import path should be <module name>/cmd/<binary name>
+      #
+      # If you are planning to publish this binary as a release artifact, you
+      # should do the following:
+      # 1. Set CGO_ENABLED: '0' in the environment block. Put the '0' in single
+      #    quotes. This will produce a statically linked binary (no runtime
+      #    dependencies).
+      # 2. go install -ldflags '-s -w' github.com/foo/bar/cmd/baz 
+      #    -ldflags '-s -w' means strip the debug symbols from the binary. This
+      #    significantly shrinks the binary size and is a security best practice.
+      - run: make build
+
+  # golangci-lint runs dozens of linters in parallel on your project. It is the
+  # best Go linter.
+  lint:
+    docker:
+      - image: golangci/golangci-lint:latest-alpine
+    steps:
+      - checkout
+      - run: golangci-lint run
+
+  test:
+    docker:
+      - image: golang:1.13
+    environment:
+      GO111MODULE: 'on'
+    working_directory: /go/src/github.com/hansingt/PyPiGo/
+    steps:
+      - checkout
+      - run: make cover
+
+workflows:
+  build_lint_test:
+    jobs:
+      - build
+      - lint
+      - test

@@ -1,32 +1,31 @@
 IMAGE_NAME ?= pypigo
 IMAGE_TAG ?= dev
-
 COVERAGE_FILE := .coverage
 SRC_FILES := $(wildcard ./**/*.go)
 EXECUTABLE := ./PyPiGo
+
+MODULE := github.com/hansingt/PyPiGo
 
 .PHONY: all \
 		build \
 		cover cover-show cover-html \
 		deps \
 		image \
+		lint \
 		run \
 		test
 
-all: deps cover
-
-deps:
-	go get .
+all: cover
 
 build: $(EXECUTABLE)
 $(EXECUTABLE): $(SRC_FILES) | deps
-	go build -o $@ .
+	go build -ldflags "-s -w" -o $@ $(MODULE)/cmd/PyPiGo
 
 run: $(EXECUTABLE)
 	$(EXECUTABLE) $(RUNOPTS)
 
-test: $(SRC_FILES)
-	go test -v $(GOTEST_OPTS) ./...
+test: $(SRC_FILES) | deps
+	go test -race $(GOTEST_OPTS) ./...
 
 cover: $(COVERAGE_FILE)
 $(COVERAGE_FILE): $(SRC_FILES) | deps
@@ -37,6 +36,14 @@ cover-show: $(COVERAGE_FILE)
 
 cover-html: $(COVERAGE_FILE)
 	go tool cover -html=$(COVERAGE_FILE) -o coverage.html
+
+lint:
+	docker run --rm -it \
+		-v $(PWD):/go/src/$(MODULE):ro \
+		-w /go/src/$(MODULE) \
+		-e GO11MODULE="on" \
+		golangci/golangci-lint:latest-alpine \
+		golangci-lint run
 
 image: .image
 .image: $(SRC_FILES) Dockerfile templates

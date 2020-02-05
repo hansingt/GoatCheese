@@ -1,15 +1,20 @@
-FROM golang:1.12-alpine as base
+FROM golang:1.13 as base
 
+#------------------
+# Builder
+#------------------
 FROM base as builder
-# The database backends use cgo.
-# Thus, they require a working gcc to compile
-RUN apk add --no-cache git gcc libc-dev
-# Copy the source files and build the app
+# Explicitly enable G11MODULES- This should not be necessary with go 1.14
+# go-sqlite3 requires cgo. Explicitly enable it
+ENV CGO_ENABLED=1 \
+    G11MODULE="on"
 COPY . /app/
 WORKDIR /app
-RUN CGO_ENABLED=1 go build -o PyPiGo .
-    
+RUN make build EXECUTBALE=/app/PyPiGo
 
+#------------------
+# Production Image
+#------------------
 FROM base
 RUN adduser -S -D -H -h /app packageserver
 USER packageserver
