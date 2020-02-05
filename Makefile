@@ -5,12 +5,14 @@ COVERAGE_FILE := .coverage
 SRC_FILES := $(wildcard ./**/*.go)
 EXECUTABLE := ./PyPiGo
 
-.PHONY: build \
+.PHONY: all \
+		build \
 		cover cover-show cover-html \
 		image \
 		run \
 		test
 
+all: cover
 
 build: $(EXECUTABLE)
 $(EXECUTABLE): $(SRC_FILES)
