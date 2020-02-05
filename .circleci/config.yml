@@ -12,6 +12,7 @@ jobs:
       GO111MODULE: 'on' # This string should be quoted because `on` is a bool in YAML. We want a string.
       CGO_ENABLED: '1'  # go-sqlite3 requires cgo enabled.
     working_directory: /go/src/github.com/hansingt/PyPiGo
+    steps:
       - checkout
       # github.com/foo/bar/cmd/baz is the import path to your main module. Your
       # func main() should be in a file in the cmd/<binary name>/ directory. The
@@ -32,6 +33,9 @@ jobs:
   lint:
     docker:
       - image: golangci/golangci-lint:latest-alpine
+    environment:
+      GO111MODULE: 'on'
+    working_directory: /go/src/github.com/hansingt/PyPiGo
     steps:
       - checkout
       - run: golangci-lint run
