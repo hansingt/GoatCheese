@@ -5,151 +5,104 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
-	"github.com/jinzhu/gorm"
+	"github.com/stretchr/testify/suite"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
-func TestProjectFile_Name(t *testing.T) {
-	testWithDatabaseAndStorage(t, func(storage string) error {
-		fileName := "test.app-15.13.37.42-py2.7.egg"
-		check, err := newProjectFile(0, fileName, storage)
-		if err != nil {
-			return err
-		}
-		if check.Name() != fileName {
-			return errors.New("the file names do not match")
-		}
-		return nil
-	})
+type ProjectFileTestSuite struct {
+	DatastoreTestSuite
+	fileName string
+	file     IProjectFile
 }
 
-func TestProjectFile_SetAndGetChecksum(t *testing.T) {
-	testWithDatabaseAndStorage(t, func(storage string) error {
-		fileName := "test.app-15.13.37.42-py2.7.egg"
-		check, err := newProjectFile(0, fileName, storage)
-		if err != nil {
-			return err
-		}
-		checksum := hex.EncodeToString(sha256.New().Sum(nil))
-		if err := check.SetChecksum(checksum); err != nil {
-			return err
-		}
-		if check.Checksum() != checksum {
-			return errors.New("the checksums do not match")
-		}
-		return nil
-	})
+func (suite *ProjectFileTestSuite) SetupTest() {
+	suite.DatastoreTestSuite.SetupTest()
+
+	suite.fileName = "test.app-15.13.37.42-py2.7.egg"
+	check, err := newProjectFile(0, suite.fileName, suite.storagePath)
+	suite.Require().Nil(err, "unable to create a new project file")
+	suite.file = check
 }
 
-func TestProjectFile_Locking(t *testing.T) {
-	testWithDatabaseAndStorage(t, func(storage string) error {
-		fileName := "test.app-15.13.37.42-py2.7.egg"
-		check, err := newProjectFile(0, fileName, storage)
-		if err != nil {
-			return err
-		}
-		if check.IsLocked() {
-			return errors.New("the file is unexpected locked")
-		}
-		if err := check.Lock(); err != nil {
-			return err
-		}
-		if !check.IsLocked() {
-			return errors.New("the file is not locked")
-		}
-		if err := check.Unlock(); err != nil {
-			return err
-		}
-		if check.IsLocked() {
-			return errors.New("the file is still locked")
-		}
-		return nil
-	})
+func TestProjectFile(t *testing.T) {
+	suite.Run(t, new(ProjectFileTestSuite))
 }
 
-func TestProjectFile_FilePath(t *testing.T) {
-	testWithDatabaseAndStorage(t, func(storage string) error {
-		fileName := "test.app-15.13.37.42-py2.7.egg"
-		check, err := newProjectFile(0, fileName, storage)
-		if err != nil {
-			return err
-		}
-		if check.FilePath() != filepath.Join(storage, check.Name()) {
-			return errors.New("the filepath is not valid")
-		}
-		return nil
-	})
+func (suite *ProjectFileTestSuite) TestName() {
+	suite.Require().Equal(suite.file.Name(), suite.fileName, "the file names do not match")
 }
 
-func TestProjectFile_Delete(t *testing.T) {
-	testWithDatabaseAndStorage(t, func(storage string) error {
-		fileName := "test.app-15.13.37.42-py2.7.egg"
-		file, err := newProjectFile(0, fileName, storage)
-		if err != nil {
-			return err
-		}
-		// Check that the file exists
-		var check projectFile
-		if err := db.Find(&check, file).Error; err != nil {
-			return err
-		}
-		// Now delete it
-		if err := file.Delete(); err != nil {
-			return err
-		}
-		// And re-check that it does not exist
-		if err := db.Find(&check, file).Error; err != nil && err != gorm.ErrRecordNotFound {
-			return err
-		}
-		return nil
-	})
+func (suite *ProjectFileTestSuite) TestSetAndGetChecksum() {
+	require := suite.Require()
+	checksum := hex.EncodeToString(sha256.New().Sum(nil))
+	require.Nil(suite.file.SetChecksum(checksum))
+	require.Equal(suite.file.Checksum(), checksum, "the checksums do not match")
 }
 
-func TestProjectFile_Write(t *testing.T) {
-	testWithDatabaseAndStorage(t, func(storage string) error {
-		fileName := "test.app-15.13.37.42-py2.7.egg"
-		file, err := newProjectFile(0, fileName, storage)
-		if err != nil {
-			return err
-		}
-		// Create some random content
-		content := make([]byte, 512)
-		hashBuilder := sha256.New()
-		if _, err := rand.Read(content); err != nil {
-			return err
-		}
-		if _, err := hashBuilder.Write(content); err != nil {
-			return err
-		}
-		contentChecksum := hex.EncodeToString(hashBuilder.Sum(nil))
-		// Write them to the file
-		if err := file.Write(bytes.NewReader(content)); err != nil {
-			return err
-		}
-		// And then read them to check the content
-		outputFile, err := os.Open(file.FilePath())
-		if err != nil {
-			return err
-		}
-		//noinspection GoUnhandledErrorResult
-		defer outputFile.Close()
+func (suite *ProjectFileTestSuite) TestLocking() {
+	require := suite.Require()
+	require.False(suite.file.IsLocked(), "the file is unexpected locked")
 
-		check := make([]byte, len(content))
-		if _, err := outputFile.Read(check); err != nil {
-			return err
-		}
-		for i, b := range content {
-			if b != check[i] {
-				return errors.New("the file contents don't match")
-			}
-		}
-		// Also check, that the checksum has been calculated
-		if file.Checksum() != contentChecksum {
-			return errors.New("the content checksums don't match")
-		}
-		return nil
-	})
+	require.Nil(suite.file.Lock(), "could not lock the file")
+	require.True(suite.file.IsLocked(), "the file is not locked")
+
+	require.Nil(suite.file.Unlock(), "could not unlock the file")
+	require.False(suite.file.IsLocked(), "the file is still locked")
+}
+
+func (suite *ProjectFileTestSuite) TestFilePath() {
+	require := suite.Require()
+	require.Equal(
+		suite.file.FilePath(),
+		filepath.Join(suite.storagePath, suite.file.Name()),
+		"the filepath is not valid")
+}
+
+func (suite *ProjectFileTestSuite) TestDelete() {
+	require := suite.Require()
+
+	// Check that the file exists
+	var check projectFile
+	require.Nil(db.Find(&check, suite.file).Error, "could not find the file in the database")
+
+	// Now delete it
+	require.Nil(suite.file.Delete(), "could not delete the file from the database")
+
+	// And re-check that it does not exist
+	require.NotNil(db.Find(&check, suite.file).Error, "Found the file in the database")
+}
+
+func (suite *ProjectFileTestSuite) TestWrite() {
+	require := suite.Require()
+
+	// Create some random content
+	content := make([]byte, 512)
+	hashBuilder := sha256.New()
+	_, err := rand.Read(content)
+	require.Nil(err, "Error creating some random file content")
+	_, err = hashBuilder.Write(content)
+	require.Nil(err, "error writing the file contents to the hash builder")
+	contentChecksum := hex.EncodeToString(hashBuilder.Sum(nil))
+
+	// Write them to the file
+	require.Nil(suite.file.Write(bytes.NewReader(content)), "unable to write the contents to the file")
+
+	// And then read them to check the content
+	var outputFile *os.File
+	outputFile, err = os.Open(suite.file.FilePath())
+	require.Nil(err, "unable to open the target file for reading")
+	//noinspection GoUnhandledErrorResult
+	defer outputFile.Close()
+
+	check := make([]byte, len(content))
+	_, err = outputFile.Read(check)
+	require.Nil(err, "unable to read the output file contents")
+
+	for i, b := range content {
+		require.Equal(b, check[i], "the file contents don't match")
+	}
+	// Also check, that the checksum has been calculated
+	require.Equal(suite.file.Checksum(), contentChecksum, "the content checksums don't match")
 }

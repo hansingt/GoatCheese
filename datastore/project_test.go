@@ -2,257 +2,177 @@ package datastore
 
 import (
 	"bytes"
-	"errors"
+	"github.com/stretchr/testify/suite"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
-func TestProject_Name(t *testing.T) {
-	testWithDatabaseAndStorage(t, func(storage string) error {
-		projectName := "test-app"
-		check, err := newProject(0, projectName, storage)
-		if err != nil {
-			return err
-		}
-		if check.Name() != projectName {
-			return errors.New("the project name is not correct")
-		}
-		return nil
-	})
+type ProjectTestSuite struct {
+	DatastoreTestSuite
+	projectName string
+	project     IProject
 }
 
-func TestProject_ProjectPath(t *testing.T) {
-	testWithDatabaseAndStorage(t, func(storage string) error {
-		check, err := newProject(0, "test-app", storage)
-		if err != nil {
-			return err
-		}
-		if check.ProjectPath() != filepath.Join(storage, check.Name()) {
-			return errors.New("the project path is not valid")
-		}
-		return nil
-	})
+func (suite *ProjectTestSuite) SetupTest() {
+	var err error
+	suite.DatastoreTestSuite.SetupTest()
+	suite.projectName = "test-app"
+	suite.project, err = newProject(0, suite.projectName, suite.storagePath)
+	suite.Require().Nil(err, "unable to create a new project")
 }
 
-func TestProject_ProjectFiles(t *testing.T) {
-	testWithDatabaseAndStorage(t, func(storage string) error {
-		check, err := newProject(0, "test-app", storage)
-		if err != nil {
-			return err
-		}
-		// Check that no files exist
-		if projectFiles, err := check.ProjectFiles(); err != nil {
-			return err
-		} else if len(projectFiles) > 0 {
-			return errors.New("unexpected files found on the project")
-		}
-		// Add a file
-		fileName := "test"
-		content := make([]byte, 512)
-		if _, err = rand.Read(content); err != nil {
-			return err
-		}
-		if err = check.AddFile(fileName, bytes.NewReader(content)); err != nil {
-			return err
-		}
-		// now check again
-		if projectFiles, err := check.ProjectFiles(); err != nil {
-			return err
-		} else if len(projectFiles) == 0 {
-			return errors.New("no files found on the project")
-		} else if projectFiles[0].Name() != fileName {
-			return errors.New("the file names don't match")
-		}
-		return nil
-	})
+func TestProject(t *testing.T) {
+	suite.Run(t, new(ProjectTestSuite))
 }
 
-func TestProject_GetFileNotFound(t *testing.T) {
-	testWithDatabaseAndStorage(t, func(storage string) error {
-		fileName := "test.app-15.13.37.42-py2.7.egg"
-		check, err := newProject(0, "test-app", storage)
-		if err != nil {
-			return err
-		}
-
-		var file IProjectFile
-		file, err = check.GetFile(fileName)
-		if err != nil {
-			return err
-		} else if file != nil {
-			return errors.New("file found in project")
-		}
-		return nil
-	})
+func (suite *ProjectTestSuite) TestName() {
+	suite.Require().Equal(
+		suite.projectName,
+		suite.project.Name(),
+		"the project name is not correct")
 }
 
-func TestProject_AddAndGetFile(t *testing.T) {
-	testWithDatabaseAndStorage(t, func(storage string) error {
-		fileName := "test.app-15.13.37.42-py2.7.egg"
-		check, err := newProject(0, "test-app", storage)
-		if err != nil {
-			return err
-		}
-		content := make([]byte, 512)
-		if _, err = rand.Read(content); err != nil {
-			return err
-		}
-		if err = check.AddFile(fileName, bytes.NewReader(content)); err != nil {
-			return err
-		}
-
-		var file IProjectFile
-		if file, err = check.GetFile(fileName); err != nil {
-			return err
-		} else if file == nil {
-			return errors.New("the file has not been found")
-		} else if file.IsLocked() {
-			return errors.New("the file has not been unlocked")
-		}
-		return nil
-	})
+func (suite *ProjectTestSuite) TestProjectPath() {
+	suite.Require().Equal(
+		filepath.Join(suite.storagePath, suite.project.Name()),
+		suite.project.ProjectPath(),
+		"the project path is not valid")
 }
 
-func TestProject_AddFileWhileLocked(t *testing.T) {
-	testWithDatabaseAndStorage(t, func(storage string) error {
-		fileName := "test.app-15.13.37.42-py2.7.egg"
-		check, err := newProject(0, "test-app", storage)
-		if err != nil {
-			return err
-		}
-		content := make([]byte, 512)
-		if _, err = rand.Read(content); err != nil {
-			return err
-		}
-		if err = check.AddFile(fileName, bytes.NewReader(content)); err != nil {
-			return err
-		}
+func (suite *ProjectTestSuite) TestProjectFiles() {
+	require := suite.Require()
 
-		var file IProjectFile
-		file, err = check.GetFile(fileName)
-		if err != nil {
-			return err
-		} else if file == nil {
-			return errors.New("the file has not been found")
-		}
+	// Check that no files exist
+	projectFiles, err := suite.project.ProjectFiles()
+	require.Nil(err, "error requesting project files")
+	require.Equal(0, len(projectFiles), "unexpected files found on the project")
 
-		if err = file.Lock(); err != nil {
-			return err
-		}
-		if err = check.AddFile(fileName, bytes.NewReader(content)); err == nil {
-			return errors.New("no error raised")
-		}
-		return nil
-	})
+	// Add a file
+	fileName := "test"
+	content := make([]byte, 512)
+	_, err = rand.Read(content)
+	require.Nil(err, "Error creating random file content")
+
+	require.Nil(suite.project.AddFile(fileName, bytes.NewReader(content)), "unable to add the new file")
+
+	// now check again
+	projectFiles, err = suite.project.ProjectFiles()
+	require.Nil(err, "error requesting project files")
+	require.Greater(len(projectFiles), 0, "unexpected files found on the project")
+	require.Equal(fileName, projectFiles[0].Name(), "the file names don't match")
 }
 
-func TestProject_OverwriteFile(t *testing.T) {
-	testWithDatabaseAndStorage(t, func(storage string) error {
-		fileName := "test.app-15.13.37.42-py2.7.egg"
-		check, err := newProject(0, "test-app", storage)
-		if err != nil {
-			return err
-		}
-		// Add a new file
-		content := make([]byte, 512)
-		if _, err = rand.Read(content); err != nil {
-			return err
-		}
-		if err = check.AddFile(fileName, bytes.NewReader(content)); err != nil {
-			return err
-		}
+func (suite *ProjectTestSuite) TestGetFileNotFound() {
+	var file IProjectFile
+	fileName := "test.app-15.13.37.42-py2.7.egg"
+	require := suite.Require()
 
-		var file IProjectFile
-		if file, err = check.GetFile(fileName); err != nil {
-			return err
-		} else if file == nil {
-			return errors.New("the file has not been found")
-		}
-		// Now overwrite it with new content
-		if _, err = rand.Read(content); err != nil {
-			return err
-		}
-		if err = check.AddFile(fileName, bytes.NewReader(content)); err != nil {
-			return err
-		}
-		// And check that the new file has been stored
-		var newFile IProjectFile
-		if newFile, err = check.GetFile(fileName); err != nil {
-			return err
-		} else if newFile == nil {
-			return errors.New("the new file has not been found")
-		} else if newFile.Checksum() == file.Checksum() {
-			return errors.New("the file contents have not been replaced")
-		}
-		return nil
-	})
+	file, err := suite.project.GetFile(fileName)
+	require.Nil(err, "unable to test the project files")
+	require.Nil(file, "file found in project")
 }
 
-func TestProject_DeleteFileOnError(t *testing.T) {
-	testWithDatabaseAndStorage(t, func(storage string) error {
-		fileName := "test.app-15.13.37.42-py2.7.egg"
-		check, err := newProject(0, "test-app", storage)
-		if err != nil {
-			return err
-		}
-		// Delete the storage directory to provoke an error
-		if err := os.RemoveAll(storage); err != nil {
-			return err
-		}
-		// Try to add a new file
-		content := make([]byte, 512)
-		if _, err = rand.Read(content); err != nil {
-			return err
-		}
-		if err = check.AddFile(fileName, bytes.NewReader(content)); err == nil {
-			return errors.New("no error has been thrown")
-		}
-		// Check that the file does not exist
-		if file, err := check.GetFile(fileName); err != nil {
-			return err
-		} else if file != nil {
-			return errors.New("the file has not been deleted")
-		}
-		return nil
-	})
+func (suite *ProjectTestSuite) TestAddAndGetFile() {
+	var file IProjectFile
+	fileName := "test.app-15.13.37.42-py2.7.egg"
+	require := suite.Require()
+
+	content := make([]byte, 512)
+	_, err := rand.Read(content)
+	require.Nil(err, "Error creating random file content")
+	require.Nil(suite.project.AddFile(fileName, bytes.NewReader(content)), "error adding the project file")
+
+	file, err = suite.project.GetFile(fileName)
+	require.Nil(err, "error getting the project file")
+	require.NotNil(file, "the file has not been found")
+	require.False(file.IsLocked(), "the file has not been unlocked")
 }
 
-func TestProject_DontDeleteFileOnModifyError(t *testing.T) {
-	testWithDatabaseAndStorage(t, func(storage string) error {
-		fileName := "test.app-15.13.37.42-py2.7.egg"
-		check, err := newProject(0, "test-app", storage)
-		if err != nil {
-			return err
-		}
-		// Try to add a new file
-		content := make([]byte, 512)
-		if _, err = rand.Read(content); err != nil {
-			return err
-		}
-		if err = check.AddFile(fileName, bytes.NewReader(content)); err != nil {
-			return err
-		}
-		// Delete the storage directory to provoke an error
-		if err := os.RemoveAll(storage); err != nil {
-			return err
-		}
-		// Now try to overwrite it with new content
-		if _, err = rand.Read(content); err != nil {
-			return err
-		}
-		if err = check.AddFile(fileName, bytes.NewReader(content)); err == nil {
-			return errors.New("no error has been returned")
-		}
-		// Check that the file still does exist
-		if file, err := check.GetFile(fileName); err != nil {
-			return err
-		} else if file == nil {
-			return errors.New("the file has not been found")
-		} else if file.IsLocked() {
-			return errors.New("the file has not been unlocked")
-		}
-		return nil
-	})
+func (suite *ProjectTestSuite) TestAddFileWhileLocked() {
+	var file IProjectFile
+	fileName := "test.app-15.13.37.42-py2.7.egg"
+	require := suite.Require()
+
+	content := make([]byte, 512)
+	_, err := rand.Read(content)
+	require.Nil(err, "Error creating random file content")
+	require.Nil(suite.project.AddFile(fileName, bytes.NewReader(content)), "error adding the project file")
+
+	file, err = suite.project.GetFile(fileName)
+	require.Nil(err, "error getting the project file")
+	require.NotNil(file, "the file has not been found")
+
+	require.Nil(file.Lock(), "could not lock the file")
+	require.NotNil(suite.project.AddFile(fileName, bytes.NewReader(content)), "no error raised")
+}
+
+func (suite *ProjectTestSuite) TestOverwriteFile() {
+	fileName := "test.app-15.13.37.42-py2.7.egg"
+	var file IProjectFile
+	var newFile IProjectFile
+	require := suite.Require()
+
+	// Add a new file
+	content := make([]byte, 512)
+	_, err := rand.Read(content)
+	require.Nil(err, "Error creating random file content")
+	require.Nil(suite.project.AddFile(fileName, bytes.NewReader(content)), "error adding the project file")
+	file, err = suite.project.GetFile(fileName)
+	require.Nil(err, "error getting the project file")
+	require.NotNil(file, "the file has not been found")
+
+	// Now overwrite it with new content
+	_, err = rand.Read(content)
+	require.Nil(err, "Error creating random file content")
+	require.Nil(suite.project.AddFile(fileName, bytes.NewReader(content)), "error adding the project file")
+
+	// And check that the new file has been stored
+	newFile, err = suite.project.GetFile(fileName)
+	require.Nil(err, "error getting the project file")
+	require.NotNil(newFile, "the file has not been found")
+	require.NotEqual(newFile.Checksum(), file.Checksum(), "the file contents have not been replaced")
+}
+
+func (suite *ProjectTestSuite) TestDeleteFileOnError() {
+	var file IProjectFile
+	fileName := "test.app-15.13.37.42-py2.7.egg"
+	require := suite.Require()
+
+	// Delete the storage directory to provoke an error
+	require.Nil(os.RemoveAll(suite.storagePath), "could not delete the storage directory")
+
+	// Try to add a new file
+	content := make([]byte, 512)
+	_, err := rand.Read(content)
+	require.Nil(err, "Error creating random file content")
+	require.NotNil(suite.project.AddFile(fileName, bytes.NewReader(content)), "no error has been raised")
+	file, err = suite.project.GetFile(fileName)
+	require.Nil(err, "error getting the project file")
+	require.Nil(file, "the file has not been deleted")
+}
+
+func (suite *ProjectTestSuite) TestDontDeleteFileOnModifyError() {
+	var file IProjectFile
+	fileName := "test.app-15.13.37.42-py2.7.egg"
+	require := suite.Require()
+
+	// Try to add a new file
+	content := make([]byte, 512)
+	_, err := rand.Read(content)
+	require.Nil(err, "Error creating random file content")
+	require.Nil(suite.project.AddFile(fileName, bytes.NewReader(content)), "error adding the project file")
+
+	// Delete the storage directory to provoke an error
+	require.Nil(os.RemoveAll(suite.storagePath), "could not delete the storage directory")
+
+	// Try to add a new file
+	_, err = rand.Read(content)
+	require.Nil(err, "Error creating random file content")
+	require.NotNil(suite.project.AddFile(fileName, bytes.NewReader(content)), "no error has been raised")
+	file, err = suite.project.GetFile(fileName)
+	require.Nil(err, "error getting the project file")
+	require.NotNil(file, "the file has not been found")
+	require.False(file.IsLocked(), "the file has not been unlocked")
 }
