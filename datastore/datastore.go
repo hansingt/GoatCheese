@@ -1,10 +1,13 @@
+/*
+Implements the database backend classes required by the GoatCheese application.
+*/
 package datastore
 
 import (
 	"fmt"
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	_ "github.com/jinzhu/gorm/dialects/postgres" // Simply import it to be usable as a database backend
+	_ "github.com/jinzhu/gorm/dialects/sqlite"   // Simply import it to be usable as a database backend
 	"gopkg.in/yaml.v2"
 	"os"
 )
@@ -127,6 +130,13 @@ func addRepositories(cfg *config) error {
 	return nil
 }
 
+/*
+New creates a new data store object and set's up the database if required.
+It reads the configuration options and repositories to setup from a configuration
+file, which's path is given by the `configFile` parameter.
+
+Warning: The data store is a global singleton and thus, this method should only be called once!
+*/
 func New(configFile string) error {
 	// Parse the configuration file
 	cfg, err := readConfigurationFile(configFile)
@@ -154,7 +164,9 @@ func New(configFile string) error {
 	return nil
 }
 
-// Repositories
+/*
+AllRepositories returns a slice of all repositories defined in the data store.
+*/
 func AllRepositories() ([]IRepository, error) {
 	var repositories []*repository
 	err := db.Find(&repositories).Error
@@ -168,6 +180,9 @@ func AllRepositories() ([]IRepository, error) {
 	return result, nil
 }
 
+/*
+GetRepository returns the Repository for a given name.
+*/
 func GetRepository(repositoryName string) (IRepository, error) {
 	var repo IRepository
 	err := db.Model(&repo).First(&repo, &repository{

@@ -8,12 +8,23 @@ import (
 	"path/filepath"
 )
 
+/*
+IProject defines the interface of a project in the GoatCheese shop.
+It defines, that a project needs to have the following properties:
+
+- Name
+- ProjectPath
+- ProjectFiles
+
+Additionally, it defines, that project files can be added to a project and,
+given a filename one can get a specific project file from it.
+*/
 type IProject interface {
-	Name() string
-	ProjectPath() string
-	ProjectFiles() ([]IProjectFile, error)
-	GetFile(fileName string) (IProjectFile, error)
-	AddFile(fileName string, content io.Reader) error
+	Name() string                                     // Name returns the name of the project
+	ProjectPath() string                              // ProjectPath returns the path on the data storage
+	ProjectFiles() ([]IProjectFile, error)            // ProjectFiles returns a slice of all files contained
+	GetFile(fileName string) (IProjectFile, error)    // GetFile returns a single file given it's file name
+	AddFile(fileName string, content io.Reader) error // AddFile adds a new file to the project
 }
 
 type project struct {

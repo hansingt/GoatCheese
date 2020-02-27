@@ -9,16 +9,27 @@ import (
 	"path/filepath"
 )
 
+/*
+IProjectFile defines the required methods of a project file.
+It defines that a project file needs to have the following properties:
+
+- Name
+- Checksum
+- FilePath
+- Lock
+
+Additionally, a file needs to be lockable, can be written and deleted.
+*/
 type IProjectFile interface {
-	Name() string
-	Checksum() string
-	SetChecksum(checksum string) error
-	IsLocked() bool
-	Lock() error
-	Unlock() error
-	FilePath() string
-	Write(content io.Reader) error
-	Delete() error
+	Name() string                      // Name returns the name of the project file
+	Checksum() string                  // Checksum returns the checksum of the file
+	SetChecksum(checksum string) error // SetChecksum sets the checksum of the project file
+	IsLocked() bool                    // IsLocked checks whether this file is currently locked by another thread
+	Lock() error                       // Lock locks this project file for writing or deletion
+	Unlock() error                     // Unlock unlocks this project file for the other threads
+	FilePath() string                  // FilePath returns the file path of the project file on the data storage
+	Write(content io.Reader) error     // Write writes the contents from the given io.Reader to the file
+	Delete() error                     // Delete deletes the project file from the database
 }
 
 type projectFile struct {
@@ -85,9 +96,9 @@ func (f *projectFile) Write(content io.Reader) error {
 			}
 			break
 		}
-                if _, err = hashBuilder.Write(buffer[:n]); err != nil {
-                    return err
-                }
+		if _, err = hashBuilder.Write(buffer[:n]); err != nil {
+			return err
+		}
 		if _, err = outputFile.Write(buffer[:n]); err != nil {
 			return err
 		}

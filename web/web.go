@@ -11,11 +11,14 @@ import (
 
 var packageNameRegExp = regexp.MustCompile("[-_.]+")
 
-type Template struct {
+type templateRenderer struct {
 	templates *template.Template
 }
 
-func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+/*
+Render a template with the given name from the list of templates.
+*/
+func (t *templateRenderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
 	// Add global methods if data is a map
 	if viewContext, isMap := data.(map[string]interface{}); isMap {
 		viewContext["reverse"] = c.Echo().Reverse
@@ -23,8 +26,12 @@ func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Con
 	return t.templates.ExecuteTemplate(w, name, data)
 }
 
+/*
+SetupEchoServer sets up the Echo web server to process requests to the GoatCheese shop.
+It sets up routes to the endpoints required to be compatible with the python package ecosystem.
+*/
 func SetupEchoServer(server *echo.Echo, templatesPath string) error {
-	templates := &Template{
+	templates := &templateRenderer{
 		template.Must(template.ParseGlob(fmt.Sprintf("%s/*.html", templatesPath))),
 	}
 	server.Renderer = templates

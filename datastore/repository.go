@@ -6,14 +6,30 @@ import (
 	"path/filepath"
 )
 
+/*
+IRepository defines the interface of a repository for the GoatCheese shop.
+
+A repository needs to have a name, a list of projects and a storage path.
+Additionally, to implement inheritance, it contains a slice of base repositories.
+These repositories are requested, if a project is not found in the repository itself.
+*/
 type IRepository interface {
+	// Name returns the name of the repository
 	Name() string
+	// Bases returns the slice of base repositories
 	Bases() ([]IRepository, error)
+	// AllProjects returns a slice of all projects defined
+	// in all reachable repositories
 	AllProjects() ([]IProject, error)
+	// RepositoryPath returns the storage path of the repository
 	RepositoryPath() string
+	// AddProject adds a new project to this repository
 	AddProject(projectName string) (IProject, error)
+	// GetProject returns a project given its project name
 	GetProject(projectName string) (IProject, error)
+	// StoragePath returns the storage base path for all repositories
 	StoragePath() string
+	// SetBases sets the slice of base repositories for this repository
 	SetBases(baseRepositories []IRepository) error
 }
 
@@ -102,16 +118,19 @@ func (r *repository) AllProjects() ([]IProject, error) {
 }
 
 func (r *repository) AddProject(projectName string) (IProject, error) {
-	if project, err := r.GetProject(projectName); err != nil {
+	// Check whether the project is already defined
+	project, err := r.GetProject(projectName)
+	if err != nil {
 		return nil, err
 	} else if project != nil {
 		return project, nil
 	}
-	if project, err := newProject(r.ID, projectName, r.RepositoryPath()); err != nil {
+	// Add a new project
+	project, err = newProject(r.ID, projectName, r.RepositoryPath())
+	if err != nil {
 		return nil, err
-	} else {
-		return project, nil
 	}
+	return project, nil
 }
 
 func (r *repository) GetProject(projectName string) (IProject, error) {
