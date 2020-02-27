@@ -1,10 +1,10 @@
-IMAGE_NAME ?= pypigo
+IMAGE_NAME ?= GoatCheese
 IMAGE_TAG ?= dev
 COVERAGE_FILE := .coverage
 SRC_FILES := $(wildcard ./**/*.go)
-EXECUTABLE := ./PyPiGo
+EXECUTABLE := ./GoatCheese
 
-MODULE := github.com/hansingt/PyPiGo
+MODULE := github.com/hansingt/GoatCheese
 
 .PHONY: all \
 		build \
@@ -19,7 +19,7 @@ all: cover
 
 build: $(EXECUTABLE)
 $(EXECUTABLE): $(SRC_FILES) | deps
-	go build -ldflags "-s -w" -o $@ $(MODULE)/cmd/PyPiGo
+	go build -ldflags "-s -w" -o $@ $(MODULE)/cmd/GoatCheese
 
 run: $(EXECUTABLE)
 	$(EXECUTABLE) $(RUNOPTS)

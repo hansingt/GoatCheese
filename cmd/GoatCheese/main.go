@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-	"github.com/hansingt/PyPiGo/datastore"
-	"github.com/hansingt/PyPiGo/web"
+	"github.com/hansingt/GoatCheese/datastore"
+	"github.com/hansingt/GoatCheese/web"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )

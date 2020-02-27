@@ -1,6 +1,6 @@
-[![PyPiGo](https://circleci.com/gh/hansingt/PyPiGo.svg?style=svg)](https://app.circleci.com/github/hansingt/PyPiGo/pipelines)
+[![GoatCheese](https://circleci.com/gh/hansingt/GoatCheese.svg?style=svg)](https://app.circleci.com/github/hansingt/GoatCheese/pipelines)
 
-# PyPiGo
+# GoatCheese
 A fast and stable local python package server.
 
 This package implements a python package server replacement written in golang.

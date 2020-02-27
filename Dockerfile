@@ -10,7 +10,7 @@ ENV CGO_ENABLED=1 \
     G11MODULE="on"
 COPY . /app/
 WORKDIR /app
-RUN make build EXECUTBALE=/app/PyPiGo
+RUN make build EXECUTBALE=/app/GoatCheese
 
 #------------------
 # Production Image
@@ -19,6 +19,6 @@ FROM base
 RUN adduser -S -D -H -h /app packageserver
 USER packageserver
 COPY ./templates /app/templates
-COPY --from=builder /app/PyPiGo /app/PyPiGo
+COPY --from=builder /app/GoatCheese /app/GoatCheese
 WORKDIR /app
-ENTRYPOINT ["/app/PyPiGo"]
+ENTRYPOINT ["/app/GoatCheese"]

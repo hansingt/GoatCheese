@@ -1,7 +1,7 @@
 package web
 
 import (
-	"github.com/hansingt/PyPiGo/datastore"
+	"github.com/hansingt/GoatCheese/datastore"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )

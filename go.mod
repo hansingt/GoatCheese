@@ -1,4 +1,4 @@
-module github.com/hansingt/PyPiGo
+module github.com/hansingt/GoatCheese
 
 go 1.12
 
