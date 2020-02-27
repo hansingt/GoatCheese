@@ -1,5 +1,5 @@
 /*
-Implements the database backend classes required by the GoatCheese application.
+Package datastore implements the database backend classes required by the GoatCheese application.
 */
 package datastore
 
