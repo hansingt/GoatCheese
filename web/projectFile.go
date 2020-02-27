@@ -9,18 +9,13 @@ import (
 
 func projectFileView(repo datastore.IRepository) func(ctx echo.Context) error {
 	return func(ctx echo.Context) error {
-		fileName := ctx.Param("file")
-		projectName, project, err := getProject(repo, ctx)
+		fileName := ctx.Param("fileName")
+		fileChecksum := ctx.Param("fileChecksum")
+		project, err := getProject(repo, ctx)
 		if err != nil {
-			return &echo.HTTPError{
-				Code:     http.StatusInternalServerError,
-				Message:  err.Error(),
-				Internal: err,
-			}
+			return err
 		}
-		if project == nil {
-			return redirectToPyPi(fmt.Sprintf("%s/%s", projectName, fileName), ctx)
-		}
+
 		var file datastore.IProjectFile
 		file, err = project.GetFile(fileName)
 		if err != nil {
@@ -29,10 +24,10 @@ func projectFileView(repo datastore.IRepository) func(ctx echo.Context) error {
 				Message:  err.Error(),
 				Internal: err,
 			}
-		} else if file == nil {
+		} else if file == nil || file.Checksum() != fileChecksum {
 			return &echo.HTTPError{
 				Code:    http.StatusNotFound,
-				Message: fmt.Sprintf("no such file '%s' found in project '%s'", fileName, project.Name()),
+				Message: fmt.Sprintf("file not found in project '%s'", project.Name()),
 			}
 		}
 		return ctx.File(file.FilePath())

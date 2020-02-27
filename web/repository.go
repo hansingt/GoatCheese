@@ -56,8 +56,8 @@ func repositoryView(repo datastore.IRepository) func(ctx echo.Context) error {
 			return err
 		}
 		return ctx.Render(http.StatusOK, "repository.html", map[string]interface{}{
-			"RepositoryName": repo.Name(),
-			"Projects":       projects,
+			"Repository": repo,
+			"Projects":   projects,
 		})
 	}
 }

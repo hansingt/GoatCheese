@@ -1,22 +1,20 @@
-{{- $reverse := index . "reverse" -}}
-{{- $repoName := .RepositoryName -}}
-{{- $projectName := .ProjectName -}}
+{{- $projectFileUrl := index . "projectFileUrl" -}}
+{{- $repo := .Repository -}}
+{{- $project := .Project -}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{{ $projectName }}</title>
+    <title>{{ $project.Name }}</title>
 </head>
 <body>
 <table>
-    <thead>links for {{ $projectName }}</thead>
+    <thead>links for {{ $project.Name }}</thead>
     <tbody>
     {{ range $key, $file := .ProjectFiles }}
         <tr>
             <td>
-                <a href="{{ call $reverse (print $repoName "-file") $projectName (print $file.Name "#sha256=" $file.Checksum) }}">
-                    {{ $file.Name }}
-                </a>
+                <a href="{{ call $projectFileUrl $repo $project $file }}">{{ $file.Name }}</a>
             </td>
         </tr>
     {{ end }}

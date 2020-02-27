@@ -7,41 +7,43 @@ import (
 	"net/http"
 )
 
-func getProject(repo datastore.IRepository, ctx echo.Context) (string, datastore.IProject, error) {
+func getProject(repo datastore.IRepository, ctx echo.Context) (datastore.IProject, error) {
 	projectName := ctx.Param("project")
 	project, err := repo.GetProject(projectName)
 	if err != nil {
-		return "", nil, err
+		return nil, &echo.HTTPError{
+			Code:     http.StatusInternalServerError,
+			Message:  err.Error(),
+			Internal: err,
+		}
 	}
 	if project == nil {
 		projectName = packageNameRegExp.ReplaceAllString(projectName, "-")
 		project, err = repo.GetProject(projectName)
 		if err != nil {
-			return "", nil, err
-		}
-	}
-	return projectName, project, nil
-}
-
-func redirectToPyPi(urlPath string, ctx echo.Context) error {
-	return ctx.Redirect(http.StatusMovedPermanently, fmt.Sprintf("https://pypi.org/simple/%s/", urlPath))
-}
-
-func projectView(repo datastore.IRepository) func(ctx echo.Context) error {
-	return func(ctx echo.Context) error {
-		projectName, project, err := getProject(repo, ctx)
-		if err != nil {
-			return &echo.HTTPError{
+			return nil, &echo.HTTPError{
 				Code:     http.StatusInternalServerError,
 				Message:  err.Error(),
 				Internal: err,
 			}
 		}
-		if project == nil {
-			// project not found here. Redirect to PyPi package server
-			return redirectToPyPi(projectName, ctx)
-		}
+	}
+	if project == nil {
+		return nil, ctx.Redirect(
+			http.StatusMovedPermanently,
+			fmt.Sprintf("https://pypi.org/simple/%s", projectName))
+	}
+	return project, nil
+}
+
+func projectView(repo datastore.IRepository) func(ctx echo.Context) error {
+	return func(ctx echo.Context) error {
 		var projectFiles []datastore.IProjectFile
+		project, err := getProject(repo, ctx)
+		if err != nil {
+			return err
+		}
+
 		projectFiles, err = project.ProjectFiles()
 		if err != nil {
 			return &echo.HTTPError{
@@ -51,9 +53,9 @@ func projectView(repo datastore.IRepository) func(ctx echo.Context) error {
 			}
 		}
 		return ctx.Render(http.StatusOK, "project.html", map[string]interface{}{
-			"ProjectName":    project.Name(),
-			"ProjectFiles":   projectFiles,
-			"RepositoryName": repo.Name(),
+			"Repository":   repo,
+			"Project":      project,
+			"ProjectFiles": projectFiles,
 		})
 	}
 }

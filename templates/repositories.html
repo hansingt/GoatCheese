@@ -1,4 +1,4 @@
-{{- $reverse := index . "reverse" -}}
+{{- $repoUrl := index . "repositoryUrl" -}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,7 +11,7 @@
     <tbody>
     {{ range .Repositories}}
         <tr>
-            <td><a href="{{ call $reverse .Name }}">{{ .Name }}</a></td>
+            <td><a href="{{ call $repoUrl . }}">{{ .Name }}</a></td>
         </tr>
     {{ end }}
     </tbody>

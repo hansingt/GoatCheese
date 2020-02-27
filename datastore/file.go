@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"github.com/jinzhu/gorm"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -86,6 +87,12 @@ func (f *projectFile) Write(content io.Reader) error {
 	if outputFile, err = os.OpenFile(f.FilePath(), os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0640); err != nil {
 		return err
 	}
+	defer func() {
+		if err = outputFile.Close(); err != nil {
+			log.Fatalf("Error while closing the output file: %s", err)
+		}
+	}()
+
 	var n int
 	buffer := make([]byte, 100*1024*1024) // 100MiB
 	hashBuilder := sha256.New()
@@ -102,9 +109,6 @@ func (f *projectFile) Write(content io.Reader) error {
 		if _, err = outputFile.Write(buffer[:n]); err != nil {
 			return err
 		}
-	}
-	if err = outputFile.Close(); err != nil {
-		return err
 	}
 	return f.SetChecksum(hex.EncodeToString(hashBuilder.Sum(nil)))
 }
