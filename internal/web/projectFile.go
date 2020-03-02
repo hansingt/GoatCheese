@@ -2,7 +2,7 @@ package web
 
 import (
 	"fmt"
-	"github.com/hansingt/GoatCheese/datastore"
+	"github.com/hansingt/GoatCheese/internal/datastore"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
