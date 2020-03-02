@@ -11,14 +11,14 @@ import (
 	"testing"
 )
 
-type ProjectFileTestSuite struct {
-	DatastoreTestSuite
+type projectFileTestSuite struct {
+	baseTestSuite
 	fileName string
 	file     IProjectFile
 }
 
-func (suite *ProjectFileTestSuite) SetupTest() {
-	suite.DatastoreTestSuite.SetupTest()
+func (suite *projectFileTestSuite) SetupTest() {
+	suite.baseTestSuite.SetupTest()
 
 	suite.fileName = "test.app-15.13.37.42-py2.7.egg"
 	check, err := newProjectFile(0, suite.fileName, suite.storagePath)
@@ -27,21 +27,21 @@ func (suite *ProjectFileTestSuite) SetupTest() {
 }
 
 func TestProjectFile(t *testing.T) {
-	suite.Run(t, new(ProjectFileTestSuite))
+	suite.Run(t, new(projectFileTestSuite))
 }
 
-func (suite *ProjectFileTestSuite) TestName() {
+func (suite *projectFileTestSuite) TestName() {
 	suite.Require().Equal(suite.file.Name(), suite.fileName, "the file names do not match")
 }
 
-func (suite *ProjectFileTestSuite) TestSetAndGetChecksum() {
+func (suite *projectFileTestSuite) TestSetAndGetChecksum() {
 	require := suite.Require()
 	checksum := hex.EncodeToString(sha256.New().Sum(nil))
 	require.Nil(suite.file.SetChecksum(checksum))
 	require.Equal(suite.file.Checksum(), checksum, "the checksums do not match")
 }
 
-func (suite *ProjectFileTestSuite) TestLocking() {
+func (suite *projectFileTestSuite) TestLocking() {
 	require := suite.Require()
 	require.False(suite.file.IsLocked(), "the file is unexpected locked")
 
@@ -52,7 +52,7 @@ func (suite *ProjectFileTestSuite) TestLocking() {
 	require.False(suite.file.IsLocked(), "the file is still locked")
 }
 
-func (suite *ProjectFileTestSuite) TestFilePath() {
+func (suite *projectFileTestSuite) TestFilePath() {
 	require := suite.Require()
 	require.Equal(
 		suite.file.FilePath(),
@@ -60,7 +60,7 @@ func (suite *ProjectFileTestSuite) TestFilePath() {
 		"the filepath is not valid")
 }
 
-func (suite *ProjectFileTestSuite) TestDelete() {
+func (suite *projectFileTestSuite) TestDelete() {
 	require := suite.Require()
 
 	// Check that the file exists
@@ -74,7 +74,7 @@ func (suite *ProjectFileTestSuite) TestDelete() {
 	require.NotNil(db.Find(&check, suite.file).Error, "Found the file in the database")
 }
 
-func (suite *ProjectFileTestSuite) TestWrite() {
+func (suite *projectFileTestSuite) TestWrite() {
 	require := suite.Require()
 
 	// Create some random content

@@ -103,13 +103,13 @@ func addRepositories(cfg *config) error {
 						"If you want to change the storage path, please migrate the pathes in the database",
 					cfg.StoragePath, dbRepo.StoragePath())
 			}
-			var baseNames []string
 			bases, err := dbRepo.Bases()
 			if err != nil {
 				return err
 			}
-			for _, base := range bases {
-				baseNames = append(baseNames, base.Name())
+			baseNames := make([]string, len(bases))
+			for i, base := range bases {
+				baseNames[i] = base.Name()
 			}
 			if !slicesEqual(baseNames, repo.Bases) {
 				var bases []IRepository
@@ -120,8 +120,7 @@ func addRepositories(cfg *config) error {
 					}
 					bases = append(bases, base)
 				}
-				err = dbRepo.SetBases(bases)
-				if err != nil {
+				if err = dbRepo.SetBases(bases); err != nil {
 					return err
 				}
 			}
@@ -184,12 +183,12 @@ func AllRepositories() ([]IRepository, error) {
 GetRepository returns the Repository for a given name.
 */
 func GetRepository(repositoryName string) (IRepository, error) {
-	var repo IRepository
+	var repo repository
 	err := db.Model(&repo).First(&repo, &repository{
 		RepositoryName: repositoryName,
 	}).Error
 	if err != nil {
 		return nil, err
 	}
-	return repo, nil
+	return &repo, nil
 }

@@ -9,39 +9,39 @@ import (
 	"testing"
 )
 
-type ProjectTestSuite struct {
-	DatastoreTestSuite
+type projectTestSuite struct {
+	baseTestSuite
 	projectName string
 	project     IProject
 }
 
-func (suite *ProjectTestSuite) SetupTest() {
+func (suite *projectTestSuite) SetupTest() {
 	var err error
-	suite.DatastoreTestSuite.SetupTest()
+	suite.baseTestSuite.SetupTest()
 	suite.projectName = "test-app"
 	suite.project, err = newProject(0, suite.projectName, suite.storagePath)
 	suite.Require().Nil(err, "unable to create a new project")
 }
 
 func TestProject(t *testing.T) {
-	suite.Run(t, new(ProjectTestSuite))
+	suite.Run(t, new(projectTestSuite))
 }
 
-func (suite *ProjectTestSuite) TestName() {
+func (suite *projectTestSuite) TestName() {
 	suite.Require().Equal(
 		suite.projectName,
 		suite.project.Name(),
 		"the project name is not correct")
 }
 
-func (suite *ProjectTestSuite) TestProjectPath() {
+func (suite *projectTestSuite) TestProjectPath() {
 	suite.Require().Equal(
 		filepath.Join(suite.storagePath, suite.project.Name()),
 		suite.project.ProjectPath(),
 		"the project path is not valid")
 }
 
-func (suite *ProjectTestSuite) TestProjectFiles() {
+func (suite *projectTestSuite) TestProjectFiles() {
 	require := suite.Require()
 
 	// Check that no files exist
@@ -64,7 +64,7 @@ func (suite *ProjectTestSuite) TestProjectFiles() {
 	require.Equal(fileName, projectFiles[0].Name(), "the file names don't match")
 }
 
-func (suite *ProjectTestSuite) TestGetFileNotFound() {
+func (suite *projectTestSuite) TestGetFileNotFound() {
 	var file IProjectFile
 	fileName := "test.app-15.13.37.42-py2.7.egg"
 	require := suite.Require()
@@ -74,7 +74,7 @@ func (suite *ProjectTestSuite) TestGetFileNotFound() {
 	require.Nil(file, "file found in project")
 }
 
-func (suite *ProjectTestSuite) TestAddAndGetFile() {
+func (suite *projectTestSuite) TestAddAndGetFile() {
 	var file IProjectFile
 	fileName := "test.app-15.13.37.42-py2.7.egg"
 	require := suite.Require()
@@ -90,7 +90,7 @@ func (suite *ProjectTestSuite) TestAddAndGetFile() {
 	require.False(file.IsLocked(), "the file has not been unlocked")
 }
 
-func (suite *ProjectTestSuite) TestAddFileWhileLocked() {
+func (suite *projectTestSuite) TestAddFileWhileLocked() {
 	var file IProjectFile
 	fileName := "test.app-15.13.37.42-py2.7.egg"
 	require := suite.Require()
@@ -108,7 +108,7 @@ func (suite *ProjectTestSuite) TestAddFileWhileLocked() {
 	require.NotNil(suite.project.AddFile(fileName, bytes.NewReader(content)), "no error raised")
 }
 
-func (suite *ProjectTestSuite) TestOverwriteFile() {
+func (suite *projectTestSuite) TestOverwriteFile() {
 	fileName := "test.app-15.13.37.42-py2.7.egg"
 	var file IProjectFile
 	var newFile IProjectFile
@@ -135,7 +135,7 @@ func (suite *ProjectTestSuite) TestOverwriteFile() {
 	require.NotEqual(newFile.Checksum(), file.Checksum(), "the file contents have not been replaced")
 }
 
-func (suite *ProjectTestSuite) TestDeleteFileOnError() {
+func (suite *projectTestSuite) TestDeleteFileOnError() {
 	var file IProjectFile
 	fileName := "test.app-15.13.37.42-py2.7.egg"
 	require := suite.Require()
@@ -153,7 +153,7 @@ func (suite *ProjectTestSuite) TestDeleteFileOnError() {
 	require.Nil(file, "the file has not been deleted")
 }
 
-func (suite *ProjectTestSuite) TestDontDeleteFileOnModifyError() {
+func (suite *projectTestSuite) TestDontDeleteFileOnModifyError() {
 	var file IProjectFile
 	fileName := "test.app-15.13.37.42-py2.7.egg"
 	require := suite.Require()

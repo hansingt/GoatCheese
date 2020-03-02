@@ -6,40 +6,40 @@ import (
 	"testing"
 )
 
-type RepositoryTestSuite struct {
-	DatastoreTestSuite
+type repositoryTestSuite struct {
+	baseTestSuite
 	repoName string
 	repo     IRepository
 }
 
-func (suite *RepositoryTestSuite) SetupTest() {
+func (suite *repositoryTestSuite) SetupTest() {
 	var err error
-	suite.DatastoreTestSuite.SetupTest()
+	suite.baseTestSuite.SetupTest()
 	suite.repoName = "apps/15.3"
 	suite.repo, err = newRepository(suite.repoName, nil, suite.storagePath)
 	suite.Require().Nil(err, "unable to create a new repository")
 }
 
 func TestRepository(t *testing.T) {
-	suite.Run(t, new(RepositoryTestSuite))
+	suite.Run(t, new(repositoryTestSuite))
 }
 
-func (suite *RepositoryTestSuite) TestName() {
+func (suite *repositoryTestSuite) TestName() {
 	suite.Require().Equal(suite.repoName, suite.repo.Name(), "the repository name is not correct")
 }
 
-func (suite *RepositoryTestSuite) TestStoragePath() {
+func (suite *repositoryTestSuite) TestStoragePath() {
 	suite.Require().Equal(suite.storagePath, suite.repo.StoragePath(), "the storage path is not correct")
 }
 
-func (suite *RepositoryTestSuite) TestRepositoryPath() {
+func (suite *repositoryTestSuite) TestRepositoryPath() {
 	suite.Require().Equal(
 		filepath.Join(suite.storagePath, suite.repo.Name()),
 		suite.repo.RepositoryPath(),
 		"the repository path is not correct")
 }
 
-func (suite *RepositoryTestSuite) TestSetAndGetBases() {
+func (suite *repositoryTestSuite) TestSetAndGetBases() {
 	var bases []IRepository
 	require := suite.Require()
 
@@ -54,7 +54,7 @@ func (suite *RepositoryTestSuite) TestSetAndGetBases() {
 	require.Equal(base.Name(), bases[0].Name(), "not the correct base has been found")
 }
 
-func (suite *RepositoryTestSuite) TestAllProjects() {
+func (suite *repositoryTestSuite) TestAllProjects() {
 	require := suite.Require()
 
 	projects, err := suite.repo.AllProjects()
@@ -73,7 +73,7 @@ func (suite *RepositoryTestSuite) TestAllProjects() {
 	require.Equal(projectName, projects[0].Name(), "not the correct project found")
 }
 
-func (suite *RepositoryTestSuite) TestAllProjectsIncludeBases() {
+func (suite *repositoryTestSuite) TestAllProjectsIncludeBases() {
 	projectName := "asdf"
 	require := suite.Require()
 
@@ -91,7 +91,7 @@ func (suite *RepositoryTestSuite) TestAllProjectsIncludeBases() {
 	require.Equal(projectName, projects[0].Name(), "not the correct project found")
 }
 
-func (suite *RepositoryTestSuite) TestAddAndGetProject() {
+func (suite *repositoryTestSuite) TestAddAndGetProject() {
 	projectName := "fuubar"
 	var project IProject
 	require := suite.Require()
@@ -107,7 +107,7 @@ func (suite *RepositoryTestSuite) TestAddAndGetProject() {
 	require.Equal(projectName, project.Name(), "not the correct project has been found")
 }
 
-func (suite *RepositoryTestSuite) TestAddExistingProject() {
+func (suite *repositoryTestSuite) TestAddExistingProject() {
 	var projects []IProject
 	projectName := "fuubar"
 	require := suite.Require()

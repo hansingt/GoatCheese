@@ -6,12 +6,12 @@ import (
 	"os"
 )
 
-type DatastoreTestSuite struct {
+type baseTestSuite struct {
 	suite.Suite
 	storagePath string
 }
 
-func (suite *DatastoreTestSuite) SetupTest() {
+func (suite *baseTestSuite) SetupTest() {
 	assert := suite.Require()
 	cfg := &config{
 		Database: databaseConfig{
@@ -24,11 +24,12 @@ func (suite *DatastoreTestSuite) SetupTest() {
 	err := setupDatabase(cfg)
 	assert.Nil(err)
 	// Create a storage path
-	suite.storagePath, err = ioutil.TempDir("", "")
+	suite.storagePath, err = ioutil.TempDir(os.TempDir(), "")
 	assert.Nil(err)
 }
 
-func (suite *DatastoreTestSuite) TearDownTest() {
+func (suite *baseTestSuite) TearDownTest() {
 	_ = db.Close()
 	_ = os.RemoveAll(suite.storagePath)
+	db = nil
 }
