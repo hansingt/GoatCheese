@@ -14,7 +14,7 @@ import (
 type projectFileTestSuite struct {
 	TestSuiteWithDatastore
 	fileName string
-	file     IProjectFile
+	file     ProjectFile
 }
 
 func (suite *projectFileTestSuite) SetupTest() {

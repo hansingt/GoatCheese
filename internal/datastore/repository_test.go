@@ -9,7 +9,7 @@ import (
 type repositoryTestSuite struct {
 	TestSuiteWithDatastore
 	repoName string
-	repo     IRepository
+	repo     Repository
 }
 
 func (suite *repositoryTestSuite) SetupTest() {
@@ -40,14 +40,14 @@ func (suite *repositoryTestSuite) TestRepositoryPath() {
 }
 
 func (suite *repositoryTestSuite) TestSetAndGetBases() {
-	var bases []IRepository
+	var bases []Repository
 	require := suite.Require()
 
 	// Create a base repository
 	base, err := newRepository(suite.db, "base", nil, suite.storagePath)
 	require.Nil(err, "unable to create a base repository")
 
-	require.Nil(suite.repo.SetBases([]IRepository{base}), "unable to set the repository bases")
+	require.Nil(suite.repo.SetBases([]Repository{base}), "unable to set the repository bases")
 	bases, err = suite.repo.Bases()
 	require.Nil(err, "unable to get the repository bases")
 	require.Equal(1, len(bases), "more than one repository base found")
@@ -80,7 +80,7 @@ func (suite *repositoryTestSuite) TestAllProjectsIncludeBases() {
 	// Create a base repository
 	base, err := newRepository(suite.db, "base", nil, suite.storagePath)
 	require.Nil(err, "unable to create a base repository")
-	require.Nil(suite.repo.SetBases([]IRepository{base}))
+	require.Nil(suite.repo.SetBases([]Repository{base}))
 
 	_, err = base.AddProject(projectName)
 	require.Nil(err, "unable to add the project to the base repository")
@@ -93,7 +93,7 @@ func (suite *repositoryTestSuite) TestAllProjectsIncludeBases() {
 
 func (suite *repositoryTestSuite) TestAddAndGetProject() {
 	projectName := "fuubar"
-	var project IProject
+	var project Project
 	require := suite.Require()
 
 	// Add a project
@@ -108,7 +108,7 @@ func (suite *repositoryTestSuite) TestAddAndGetProject() {
 }
 
 func (suite *repositoryTestSuite) TestAddExistingProject() {
-	var projects []IProject
+	var projects []Project
 	projectName := "fuubar"
 	require := suite.Require()
 

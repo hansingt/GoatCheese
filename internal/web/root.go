@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func rootView(datastore datastore.IDatastore) func(ctx echo.Context) error {
+func rootView(datastore datastore.Datastore) func(ctx echo.Context) error {
 	return func(ctx echo.Context) error {
 		repos, err := datastore.AllRepositories()
 		if err != nil {

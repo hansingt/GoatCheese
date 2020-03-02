@@ -96,7 +96,7 @@ func (suite *DatastoreTestSuite) TestAddAndGetRepositories() {
 	// initially, no repositories are in the database
 	repos, err := db.AllRepositories()
 	assert.Nil(err, "unable to get the repositories")
-	assert.Equal([]IRepository{}, repos)
+	assert.Equal([]Repository{}, repos)
 
 	// now add the repositories from the configuration
 	assert.Nil(db.addRepositories(suite.configuration), "unable to add the repositories to the database")

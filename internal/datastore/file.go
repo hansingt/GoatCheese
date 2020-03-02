@@ -11,7 +11,7 @@ import (
 )
 
 /*
-IProjectFile defines the required methods of a project file.
+ProjectFile defines the required methods of a project file.
 It defines that a project file needs to have the following properties:
 
 - Name
@@ -21,7 +21,7 @@ It defines that a project file needs to have the following properties:
 
 Additionally, a file needs to be lockable, can be written and deleted.
 */
-type IProjectFile interface {
+type ProjectFile interface {
 	Name() string                      // Name returns the name of the project file
 	Checksum() string                  // Checksum returns the checksum of the file
 	SetChecksum(checksum string) error // SetChecksum sets the checksum of the project file
@@ -43,7 +43,7 @@ type projectFile struct {
 	ProjectPath  string
 }
 
-func newProjectFile(db *datastore, projectID uint, fileName string, projectPath string) (IProjectFile, error) {
+func newProjectFile(db *datastore, projectID uint, fileName string, projectPath string) (ProjectFile, error) {
 	file := &projectFile{
 		db:          db,
 		ProjectID:   projectID,

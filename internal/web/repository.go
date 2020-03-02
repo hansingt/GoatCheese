@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func submit(repo datastore.IRepository, form *multipart.Form) (datastore.IProject, error) {
+func submit(repo datastore.Repository, form *multipart.Form) (datastore.Project, error) {
 	fieldValues := form.Value["name"]
 	if len(fieldValues) != 1 {
 		return nil, &echo.HTTPError{
@@ -20,7 +20,7 @@ func submit(repo datastore.IRepository, form *multipart.Form) (datastore.IProjec
 	return repo.AddProject(projectName)
 }
 
-func fileUpload(repo datastore.IRepository, form *multipart.Form) error {
+func fileUpload(repo datastore.Repository, form *multipart.Form) error {
 	prj, err := submit(repo, form)
 	if err != nil {
 		return err
@@ -49,7 +49,7 @@ func fileUpload(repo datastore.IRepository, form *multipart.Form) error {
 	return nil
 }
 
-func repositoryView(repo datastore.IRepository) func(ctx echo.Context) error {
+func repositoryView(repo datastore.Repository) func(ctx echo.Context) error {
 	return func(ctx echo.Context) error {
 		projects, err := repo.AllProjects()
 		if err != nil {
@@ -62,7 +62,7 @@ func repositoryView(repo datastore.IRepository) func(ctx echo.Context) error {
 	}
 }
 
-func repositoryPostView(repo datastore.IRepository) func(ctx echo.Context) error {
+func repositoryPostView(repo datastore.Repository) func(ctx echo.Context) error {
 	return func(ctx echo.Context) error {
 		form, err := ctx.MultipartForm()
 		if err != nil {

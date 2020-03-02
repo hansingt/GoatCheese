@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func projectFileView(repo datastore.IRepository) func(ctx echo.Context) error {
+func projectFileView(repo datastore.Repository) func(ctx echo.Context) error {
 	return func(ctx echo.Context) error {
 		fileName := ctx.Param("fileName")
 		fileChecksum := ctx.Param("fileChecksum")
@@ -16,7 +16,7 @@ func projectFileView(repo datastore.IRepository) func(ctx echo.Context) error {
 			return err
 		}
 
-		var file datastore.IProjectFile
+		var file datastore.ProjectFile
 		file, err = project.GetFile(fileName)
 		if err != nil {
 			return &echo.HTTPError{

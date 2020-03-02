@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func getProject(repo datastore.IRepository, ctx echo.Context) (datastore.IProject, error) {
+func getProject(repo datastore.Repository, ctx echo.Context) (datastore.Project, error) {
 	projectName := ctx.Param("project")
 	project, err := repo.GetProject(projectName)
 	if err != nil {
@@ -36,9 +36,9 @@ func getProject(repo datastore.IRepository, ctx echo.Context) (datastore.IProjec
 	return project, nil
 }
 
-func projectView(repo datastore.IRepository) func(ctx echo.Context) error {
+func projectView(repo datastore.Repository) func(ctx echo.Context) error {
 	return func(ctx echo.Context) error {
-		var projectFiles []datastore.IProjectFile
+		var projectFiles []datastore.ProjectFile
 		project, err := getProject(repo, ctx)
 		if err != nil {
 			return err

@@ -12,11 +12,18 @@ import (
 	"os"
 )
 
-type IDatastore interface {
+/*
+Datastore defines the main interface for the data store.
+
+A data store is a combination of a database and a storage path on the disk.
+It stores the metadata of the different repositories and projects in the
+database and the files to download in the storage path on disk.
+*/
+type Datastore interface {
 	// AllRepositories returns a slice of all repositories defined in the data store.
-	AllRepositories() ([]IRepository, error)
+	AllRepositories() ([]Repository, error)
 	// GetRepository returns the Repository for a given name.
-	GetRepository(repositoryName string) (IRepository, error)
+	GetRepository(repositoryName string) (Repository, error)
 	// Close closes the database connection
 	Close() error
 }
@@ -98,7 +105,7 @@ file, which's path is given by the `configFile` parameter.
 
 Warning: The data store is a global singleton and thus, this method should only be called once!
 */
-func New(configFile string) (IDatastore, error) {
+func New(configFile string) (Datastore, error) {
 	// Parse the configuration file
 	cfg, err := readConfigurationFile(configFile)
 	if err != nil {
@@ -127,13 +134,13 @@ func New(configFile string) (IDatastore, error) {
 	return db, nil
 }
 
-func (db *datastore) AllRepositories() ([]IRepository, error) {
+func (db *datastore) AllRepositories() ([]Repository, error) {
 	var repositories []*repository
 	err := db.Find(&repositories).Error
 	if err != nil {
 		return nil, err
 	}
-	result := make([]IRepository, len(repositories))
+	result := make([]Repository, len(repositories))
 	for i, repo := range repositories {
 		repo.db = db
 		result[i] = repo
@@ -141,7 +148,7 @@ func (db *datastore) AllRepositories() ([]IRepository, error) {
 	return result, nil
 }
 
-func (db *datastore) GetRepository(repositoryName string) (IRepository, error) {
+func (db *datastore) GetRepository(repositoryName string) (Repository, error) {
 	var repo repository
 	err := db.Model(&repo).First(&repo, &repository{
 		RepositoryName: repositoryName,
@@ -162,7 +169,7 @@ func (db *datastore) addRepositories(cfg *config) error {
 	if err != nil {
 		return err
 	}
-	existingRepos := make(map[string]IRepository, len(dbRepos))
+	existingRepos := make(map[string]Repository, len(dbRepos))
 	for _, repo := range dbRepos {
 		existingRepos[repo.Name()] = repo
 	}
@@ -188,7 +195,7 @@ func (db *datastore) addRepositories(cfg *config) error {
 				baseNames[i] = base.Name()
 			}
 			if !slicesEqual(baseNames, repo.Bases) {
-				var bases []IRepository
+				var bases []Repository
 				for _, baseName := range repo.Bases {
 					base, err := db.GetRepository(baseName)
 					if err != nil {

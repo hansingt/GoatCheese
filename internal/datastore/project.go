@@ -9,7 +9,7 @@ import (
 )
 
 /*
-IProject defines the interface of a project in the GoatCheese shop.
+Project defines the interface of a project in the GoatCheese shop.
 It defines, that a project needs to have the following properties:
 
 - Name
@@ -19,11 +19,11 @@ It defines, that a project needs to have the following properties:
 Additionally, it defines, that project files can be added to a project and,
 given a filename one can get a specific project file from it.
 */
-type IProject interface {
+type Project interface {
 	Name() string                                     // Name returns the name of the project
 	ProjectPath() string                              // ProjectPath returns the path on the data storage
-	ProjectFiles() ([]IProjectFile, error)            // ProjectFiles returns a slice of all files contained
-	GetFile(fileName string) (IProjectFile, error)    // GetFile returns a single file given it's file name
+	ProjectFiles() ([]ProjectFile, error)             // ProjectFiles returns a slice of all files contained
+	GetFile(fileName string) (ProjectFile, error)     // GetFile returns a single file given it's file name
 	AddFile(fileName string, content io.Reader) error // AddFile adds a new file to the project
 }
 
@@ -35,7 +35,7 @@ type project struct {
 	RepositoryPath string
 }
 
-func newProject(db *datastore, repositoryID uint, projectName string, repositoryPath string) (IProject, error) {
+func newProject(db *datastore, repositoryID uint, projectName string, repositoryPath string) (Project, error) {
 	project := &project{
 		db:             db,
 		RepositoryID:   repositoryID,
@@ -58,12 +58,12 @@ func (p *project) ProjectPath() string {
 	return filepath.Join(p.RepositoryPath, p.ProjectName)
 }
 
-func (p *project) ProjectFiles() ([]IProjectFile, error) {
+func (p *project) ProjectFiles() ([]ProjectFile, error) {
 	var projectFiles []*projectFile
 	err := p.db.Find(&projectFiles, &projectFile{
 		ProjectID: p.ID,
 	}).Error
-	result := make([]IProjectFile, len(projectFiles))
+	result := make([]ProjectFile, len(projectFiles))
 	for i, file := range projectFiles {
 		file.db = p.db
 		result[i] = file
@@ -71,7 +71,7 @@ func (p *project) ProjectFiles() ([]IProjectFile, error) {
 	return result, err
 }
 
-func (p *project) GetFile(fileName string) (IProjectFile, error) {
+func (p *project) GetFile(fileName string) (ProjectFile, error) {
 	file := &projectFile{
 		ProjectID: p.ID,
 		FileName:  fileName,
@@ -88,7 +88,7 @@ func (p *project) GetFile(fileName string) (IProjectFile, error) {
 }
 
 func (p *project) AddFile(fileName string, content io.Reader) error {
-	var newFile IProjectFile
+	var newFile ProjectFile
 	file, err := p.GetFile(fileName)
 	if err != nil {
 		return err

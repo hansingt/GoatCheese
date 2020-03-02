@@ -12,7 +12,7 @@ import (
 type projectTestSuite struct {
 	TestSuiteWithDatastore
 	projectName string
-	project     IProject
+	project     Project
 }
 
 func (suite *projectTestSuite) SetupTest() {
@@ -65,7 +65,7 @@ func (suite *projectTestSuite) TestProjectFiles() {
 }
 
 func (suite *projectTestSuite) TestGetFileNotFound() {
-	var file IProjectFile
+	var file ProjectFile
 	fileName := "test.app-15.13.37.42-py2.7.egg"
 	require := suite.Require()
 
@@ -75,7 +75,7 @@ func (suite *projectTestSuite) TestGetFileNotFound() {
 }
 
 func (suite *projectTestSuite) TestAddAndGetFile() {
-	var file IProjectFile
+	var file ProjectFile
 	fileName := "test.app-15.13.37.42-py2.7.egg"
 	require := suite.Require()
 
@@ -91,7 +91,7 @@ func (suite *projectTestSuite) TestAddAndGetFile() {
 }
 
 func (suite *projectTestSuite) TestAddFileWhileLocked() {
-	var file IProjectFile
+	var file ProjectFile
 	fileName := "test.app-15.13.37.42-py2.7.egg"
 	require := suite.Require()
 
@@ -110,8 +110,8 @@ func (suite *projectTestSuite) TestAddFileWhileLocked() {
 
 func (suite *projectTestSuite) TestOverwriteFile() {
 	fileName := "test.app-15.13.37.42-py2.7.egg"
-	var file IProjectFile
-	var newFile IProjectFile
+	var file ProjectFile
+	var newFile ProjectFile
 	require := suite.Require()
 
 	// Add a new file
@@ -136,7 +136,7 @@ func (suite *projectTestSuite) TestOverwriteFile() {
 }
 
 func (suite *projectTestSuite) TestDeleteFileOnError() {
-	var file IProjectFile
+	var file ProjectFile
 	fileName := "test.app-15.13.37.42-py2.7.egg"
 	require := suite.Require()
 
@@ -154,7 +154,7 @@ func (suite *projectTestSuite) TestDeleteFileOnError() {
 }
 
 func (suite *projectTestSuite) TestDontDeleteFileOnModifyError() {
-	var file IProjectFile
+	var file ProjectFile
 	fileName := "test.app-15.13.37.42-py2.7.egg"
 	require := suite.Require()
 

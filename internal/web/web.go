@@ -15,20 +15,20 @@ type templateRenderer struct {
 	templates *template.Template
 }
 
-func repositoryUrl(c echo.Context) func(repo datastore.IRepository) string {
-	return func(repo datastore.IRepository) string {
+func repositoryUrl(c echo.Context) func(repo datastore.Repository) string {
+	return func(repo datastore.Repository) string {
 		return c.Echo().Reverse(repo.Name())
 	}
 }
 
-func projectUrl(c echo.Context) func(repo datastore.IRepository, project datastore.IProject) string {
-	return func(repository datastore.IRepository, project datastore.IProject) string {
+func projectUrl(c echo.Context) func(repo datastore.Repository, project datastore.Project) string {
+	return func(repository datastore.Repository, project datastore.Project) string {
 		return c.Echo().Reverse(fmt.Sprintf("%s-project", repository.Name()), project.Name())
 	}
 }
 
-func projectFileUrl(c echo.Context) func(repo datastore.IRepository, project datastore.IProject, file datastore.IProjectFile) string {
-	return func(repo datastore.IRepository, project datastore.IProject, file datastore.IProjectFile) string {
+func projectFileUrl(c echo.Context) func(repo datastore.Repository, project datastore.Project, file datastore.ProjectFile) string {
+	return func(repo datastore.Repository, project datastore.Project, file datastore.ProjectFile) string {
 		url := c.Echo().Reverse(
 			fmt.Sprintf("%s-file", repo.Name()),
 			project.Name(),
@@ -55,7 +55,7 @@ func (t *templateRenderer) Render(w io.Writer, name string, data interface{}, c 
 SetupEchoServer sets up the Echo web server to process requests to the GoatCheese shop.
 It sets up routes to the endpoints required to be compatible with the python package ecosystem.
 */
-func SetupEchoServer(server *echo.Echo, datastore datastore.IDatastore, templatesPath string) error {
+func SetupEchoServer(server *echo.Echo, datastore datastore.Datastore, templatesPath string) error {
 	templates := &templateRenderer{
 		template.Must(template.ParseGlob(fmt.Sprintf("%s/*.html", templatesPath))),
 	}

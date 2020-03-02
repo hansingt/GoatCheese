@@ -7,30 +7,30 @@ import (
 )
 
 /*
-IRepository defines the interface of a repository for the GoatCheese shop.
+Repository defines the interface of a repository for the GoatCheese shop.
 
 A repository needs to have a name, a list of projects and a storage path.
 Additionally, to implement inheritance, it contains a slice of base repositories.
 These repositories are requested, if a project is not found in the repository itself.
 */
-type IRepository interface {
+type Repository interface {
 	// Name returns the name of the repository
 	Name() string
 	// Bases returns the slice of base repositories
-	Bases() ([]IRepository, error)
+	Bases() ([]Repository, error)
 	// AllProjects returns a slice of all projects defined
 	// in all reachable repositories
-	AllProjects() ([]IProject, error)
+	AllProjects() ([]Project, error)
 	// RepositoryPath returns the storage path of the repository
 	RepositoryPath() string
 	// AddProject adds a new project to this repository
-	AddProject(projectName string) (IProject, error)
+	AddProject(projectName string) (Project, error)
 	// GetProject returns a project given its project name
-	GetProject(projectName string) (IProject, error)
+	GetProject(projectName string) (Project, error)
 	// StoragePath returns the storage base path for all repositories
 	StoragePath() string
 	// SetBases sets the slice of base repositories for this repository
-	SetBases(baseRepositories []IRepository) error
+	SetBases(baseRepositories []Repository) error
 }
 
 type repository struct {
@@ -41,7 +41,7 @@ type repository struct {
 	Storage         string
 }
 
-func newRepository(db *datastore, name string, baseNames []string, storagePath string) (IRepository, error) {
+func newRepository(db *datastore, name string, baseNames []string, storagePath string) (Repository, error) {
 	var bases []*repository
 	if err := db.Model(&repository{}).Find(&bases, "repository_name IN (?)", baseNames).Error; err != nil {
 		return nil, err
@@ -72,12 +72,12 @@ func (r *repository) RepositoryPath() string {
 	return filepath.Join(r.StoragePath(), r.Name())
 }
 
-func (r *repository) Bases() ([]IRepository, error) {
+func (r *repository) Bases() ([]Repository, error) {
 	var bases []*repository
 	if err := r.db.Model(r).Association("RepositoryBases").Find(&bases).Error; err != nil {
 		return nil, err
 	}
-	var result []IRepository
+	var result []Repository
 	for _, base := range bases {
 		base.db = r.db
 		result = append(result, base)
@@ -85,13 +85,13 @@ func (r *repository) Bases() ([]IRepository, error) {
 	return result, nil
 }
 
-func (r *repository) AllProjects() ([]IProject, error) {
+func (r *repository) AllProjects() ([]Project, error) {
 	// Find the projects of this repository
 	var projects []*project
 	if err := r.db.Find(&projects, &project{RepositoryID: r.ID}).Error; err != nil {
 		return nil, err
 	}
-	projectSet := make(map[string]IProject, len(projects))
+	projectSet := make(map[string]Project, len(projects))
 	for _, project := range projects {
 		project.db = r.db
 		projectSet[project.Name()] = project
@@ -114,14 +114,14 @@ func (r *repository) AllProjects() ([]IProject, error) {
 		}
 	}
 	// Then convert the set to a slice
-	result := make([]IProject, 0, len(projectSet))
+	result := make([]Project, 0, len(projectSet))
 	for _, project := range projectSet {
 		result = append(result, project)
 	}
 	return result, nil
 }
 
-func (r *repository) AddProject(projectName string) (IProject, error) {
+func (r *repository) AddProject(projectName string) (Project, error) {
 	// Check whether the project is already defined
 	project, err := r.GetProject(projectName)
 	if err != nil {
@@ -137,7 +137,7 @@ func (r *repository) AddProject(projectName string) (IProject, error) {
 	return project, nil
 }
 
-func (r *repository) GetProject(projectName string) (IProject, error) {
+func (r *repository) GetProject(projectName string) (Project, error) {
 	project := &project{
 		RepositoryID: r.ID,
 		ProjectName:  projectName,
@@ -153,7 +153,7 @@ func (r *repository) GetProject(projectName string) (IProject, error) {
 	return project, nil
 }
 
-func (r *repository) SetBases(baseRepositories []IRepository) error {
+func (r *repository) SetBases(baseRepositories []Repository) error {
 	var bases []*repository
 	for _, base := range baseRepositories {
 		bases = append(bases, base.(*repository))
