@@ -7,16 +7,16 @@ import (
 )
 
 type repositoryTestSuite struct {
-	baseTestSuite
+	TestSuiteWithDatastore
 	repoName string
 	repo     IRepository
 }
 
 func (suite *repositoryTestSuite) SetupTest() {
 	var err error
-	suite.baseTestSuite.SetupTest()
+	suite.TestSuiteWithDatastore.SetupTest()
 	suite.repoName = "apps/15.3"
-	suite.repo, err = newRepository(suite.repoName, nil, suite.storagePath)
+	suite.repo, err = newRepository(suite.db, suite.repoName, nil, suite.storagePath)
 	suite.Require().Nil(err, "unable to create a new repository")
 }
 
@@ -44,7 +44,7 @@ func (suite *repositoryTestSuite) TestSetAndGetBases() {
 	require := suite.Require()
 
 	// Create a base repository
-	base, err := newRepository("base", nil, suite.storagePath)
+	base, err := newRepository(suite.db, "base", nil, suite.storagePath)
 	require.Nil(err, "unable to create a base repository")
 
 	require.Nil(suite.repo.SetBases([]IRepository{base}), "unable to set the repository bases")
@@ -78,7 +78,7 @@ func (suite *repositoryTestSuite) TestAllProjectsIncludeBases() {
 	require := suite.Require()
 
 	// Create a base repository
-	base, err := newRepository("base", nil, suite.storagePath)
+	base, err := newRepository(suite.db, "base", nil, suite.storagePath)
 	require.Nil(err, "unable to create a base repository")
 	require.Nil(suite.repo.SetBases([]IRepository{base}))
 

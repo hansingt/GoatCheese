@@ -6,16 +6,18 @@ import (
 	"net/http"
 )
 
-func rootView(ctx echo.Context) error {
-	repos, err := datastore.AllRepositories()
-	if err != nil {
-		return &echo.HTTPError{
-			Code:     http.StatusInternalServerError,
-			Message:  err.Error(),
-			Internal: err,
+func rootView(datastore datastore.IDatastore) func(ctx echo.Context) error {
+	return func(ctx echo.Context) error {
+		repos, err := datastore.AllRepositories()
+		if err != nil {
+			return &echo.HTTPError{
+				Code:     http.StatusInternalServerError,
+				Message:  err.Error(),
+				Internal: err,
+			}
 		}
+		return ctx.Render(http.StatusOK, "repositories.html", map[string]interface{}{
+			"Repositories": repos,
+		})
 	}
-	return ctx.Render(http.StatusOK, "repositories.html", map[string]interface{}{
-		"Repositories": repos,
-	})
 }

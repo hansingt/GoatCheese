@@ -35,17 +35,19 @@ type IRepository interface {
 
 type repository struct {
 	gorm.Model
+	db              *datastore    `gorm:"-"`
 	RepositoryName  string        `gorm:"unique_index"`
 	RepositoryBases []*repository `gorm:"many2many:repository_bases;association_jointable_foreignkey:parent_id"`
 	Storage         string
 }
 
-func newRepository(name string, baseNames []string, storagePath string) (IRepository, error) {
+func newRepository(db *datastore, name string, baseNames []string, storagePath string) (IRepository, error) {
 	var bases []*repository
 	if err := db.Model(&repository{}).Find(&bases, "repository_name IN (?)", baseNames).Error; err != nil {
 		return nil, err
 	}
 	repo := &repository{
+		db:              db,
 		RepositoryName:  name,
 		RepositoryBases: bases,
 		Storage:         storagePath,
@@ -72,11 +74,12 @@ func (r *repository) RepositoryPath() string {
 
 func (r *repository) Bases() ([]IRepository, error) {
 	var bases []*repository
-	if err := db.Model(r).Association("RepositoryBases").Find(&bases).Error; err != nil {
+	if err := r.db.Model(r).Association("RepositoryBases").Find(&bases).Error; err != nil {
 		return nil, err
 	}
 	var result []IRepository
 	for _, base := range bases {
+		base.db = r.db
 		result = append(result, base)
 	}
 	return result, nil
@@ -85,11 +88,12 @@ func (r *repository) Bases() ([]IRepository, error) {
 func (r *repository) AllProjects() ([]IProject, error) {
 	// Find the projects of this repository
 	var projects []*project
-	if err := db.Find(&projects, &project{RepositoryID: r.ID}).Error; err != nil {
+	if err := r.db.Find(&projects, &project{RepositoryID: r.ID}).Error; err != nil {
 		return nil, err
 	}
 	projectSet := make(map[string]IProject, len(projects))
 	for _, project := range projects {
+		project.db = r.db
 		projectSet[project.Name()] = project
 	}
 
@@ -126,7 +130,7 @@ func (r *repository) AddProject(projectName string) (IProject, error) {
 		return project, nil
 	}
 	// Add a new project
-	project, err = newProject(r.ID, projectName, r.RepositoryPath())
+	project, err = newProject(r.db, r.ID, projectName, r.RepositoryPath())
 	if err != nil {
 		return nil, err
 	}
@@ -138,13 +142,14 @@ func (r *repository) GetProject(projectName string) (IProject, error) {
 		RepositoryID: r.ID,
 		ProjectName:  projectName,
 	}
-	err := db.Model(project).Find(project, project).Error
+	err := r.db.Model(project).Find(project, project).Error
 	if err != nil {
 		if err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		return nil, nil
 	}
+	project.db = r.db
 	return project, nil
 }
 
@@ -154,5 +159,5 @@ func (r *repository) SetBases(baseRepositories []IRepository) error {
 		bases = append(bases, base.(*repository))
 	}
 	r.RepositoryBases = bases
-	return db.Model(r).Updates(r).Error
+	return r.db.Model(r).Updates(r).Error
 }

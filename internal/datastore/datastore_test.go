@@ -80,30 +80,27 @@ func (suite *DatastoreTestSuite) TestReadConfigurationFile() {
 
 func (suite *DatastoreTestSuite) TestSetupDatabase() {
 	// Make sure the there is no old database
-	if db != nil {
-		suite.Require().Nil(db.Close())
-		db = nil
-	}
 	// now setup the new database
-	suite.Require().Nil(setupDatabase(suite.configuration), "unable to setup the database")
+	db, err := setupDatabase(suite.configuration)
+	suite.Require().Nil(err, "unable to setup the database")
 	suite.Require().NotNil(db, "no new database has been initialized")
 	suite.Require().Nil(db.Close(), "unable to close the database")
-	db = nil
 }
 
 func (suite *DatastoreTestSuite) TestAddAndGetRepositories() {
 	assert := suite.Require()
 	// Setup the database
-	assert.Nil(setupDatabase(suite.configuration), "unable to setup the database")
+	db, err := setupDatabase(suite.configuration)
+	assert.Nil(err, "unable to setup the database")
 
 	// initially, no repositories are in the database
-	repos, err := AllRepositories()
+	repos, err := db.AllRepositories()
 	assert.Nil(err, "unable to get the repositories")
 	assert.Equal([]IRepository{}, repos)
 
 	// now add the repositories from the configuration
-	assert.Nil(addRepositories(suite.configuration), "unable to add the repositories to the database")
-	repos, err = AllRepositories()
+	assert.Nil(db.addRepositories(suite.configuration), "unable to add the repositories to the database")
+	repos, err = db.AllRepositories()
 	assert.Nil(err, "unable to get the repositories")
 	assert.Equal(len(suite.configuration.Indexes), len(repos), "the number of repositories does not match")
 	for _, index := range suite.configuration.Indexes {
@@ -122,27 +119,29 @@ func (suite *DatastoreTestSuite) TestAddAndGetRepositories() {
 		Name:  "test2",
 		Bases: []string{},
 	})
-	assert.Nil(addRepositories(suite.configuration), "unable to add the repositories to the database")
-	repos, err = AllRepositories()
+	assert.Nil(db.addRepositories(suite.configuration), "unable to add the repositories to the database")
+	repos, err = db.AllRepositories()
 	assert.Nil(err, "unable to get the repositories")
 	assert.Equal(len(suite.configuration.Indexes), len(repos), "the number of repositories does not match")
 	suite.configuration.Indexes[1].Bases = []string{suite.configuration.Indexes[0].Name, "test2"}
-	assert.Nil(addRepositories(suite.configuration), "unable to add the repositories to the database")
+	assert.Nil(db.addRepositories(suite.configuration), "unable to add the repositories to the database")
 
 	// Tear down the database
 	assert.Nil(db.Close())
-	db = nil
 }
 
 func (suite *DatastoreTestSuite) TestNew() {
-	suite.Require().Nil(New(suite.configurationFile), "unable to create a new data store")
+	db, err := New(suite.configurationFile)
+	suite.Require().Nil(err, "unable to create a new data store")
 	suite.Require().NotNil(db, "no database has been initialized")
+	suite.Require().Nil(db.Close(), "unable to close the database connection")
 }
 
 func (suite *DatastoreTestSuite) TestGetRepository() {
-	suite.Require().Nil(New(suite.configurationFile), "unable to create a new data store")
+	db, err := New(suite.configurationFile)
+	suite.Require().Nil(err, "unable to create a new data store")
 	for _, index := range suite.configuration.Indexes {
-		repo, err := GetRepository(index.Name)
+		repo, err := db.GetRepository(index.Name)
 		suite.Require().Nil(err, "unable to get the repository from the database")
 		suite.Require().Equal(index.Name, repo.Name())
 		bases, err := repo.Bases()

@@ -12,16 +12,16 @@ import (
 )
 
 type projectFileTestSuite struct {
-	baseTestSuite
+	TestSuiteWithDatastore
 	fileName string
 	file     IProjectFile
 }
 
 func (suite *projectFileTestSuite) SetupTest() {
-	suite.baseTestSuite.SetupTest()
+	suite.TestSuiteWithDatastore.SetupTest()
 
 	suite.fileName = "test.app-15.13.37.42-py2.7.egg"
-	check, err := newProjectFile(0, suite.fileName, suite.storagePath)
+	check, err := newProjectFile(suite.db, 0, suite.fileName, suite.storagePath)
 	suite.Require().Nil(err, "unable to create a new project file")
 	suite.file = check
 }
@@ -65,13 +65,13 @@ func (suite *projectFileTestSuite) TestDelete() {
 
 	// Check that the file exists
 	var check projectFile
-	require.Nil(db.Find(&check, suite.file).Error, "could not find the file in the database")
+	require.Nil(suite.db.Find(&check, suite.file).Error, "could not find the file in the database")
 
 	// Now delete it
 	require.Nil(suite.file.Delete(), "could not delete the file from the database")
 
 	// And re-check that it does not exist
-	require.NotNil(db.Find(&check, suite.file).Error, "Found the file in the database")
+	require.NotNil(suite.db.Find(&check, suite.file).Error, "Found the file in the database")
 }
 
 func (suite *projectFileTestSuite) TestWrite() {

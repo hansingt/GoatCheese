@@ -10,16 +10,16 @@ import (
 )
 
 type projectTestSuite struct {
-	baseTestSuite
+	TestSuiteWithDatastore
 	projectName string
 	project     IProject
 }
 
 func (suite *projectTestSuite) SetupTest() {
 	var err error
-	suite.baseTestSuite.SetupTest()
+	suite.TestSuiteWithDatastore.SetupTest()
 	suite.projectName = "test-app"
-	suite.project, err = newProject(0, suite.projectName, suite.storagePath)
+	suite.project, err = newProject(suite.db, 0, suite.projectName, suite.storagePath)
 	suite.Require().Nil(err, "unable to create a new project")
 }
 

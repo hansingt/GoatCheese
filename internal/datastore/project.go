@@ -29,13 +29,15 @@ type IProject interface {
 
 type project struct {
 	gorm.Model
-	RepositoryID   uint   `gorm:"unique_index:idx_project;NOT NULL"`
-	ProjectName    string `gorm:"unique_index:idx_project;NOT NULL"`
+	db             *datastore `gorm:"-"`
+	RepositoryID   uint       `gorm:"unique_index:idx_project;NOT NULL"`
+	ProjectName    string     `gorm:"unique_index:idx_project;NOT NULL"`
 	RepositoryPath string
 }
 
-func newProject(repositoryID uint, projectName string, repositoryPath string) (IProject, error) {
+func newProject(db *datastore, repositoryID uint, projectName string, repositoryPath string) (IProject, error) {
 	project := &project{
+		db:             db,
 		RepositoryID:   repositoryID,
 		ProjectName:    projectName,
 		RepositoryPath: repositoryPath,
@@ -58,11 +60,12 @@ func (p *project) ProjectPath() string {
 
 func (p *project) ProjectFiles() ([]IProjectFile, error) {
 	var projectFiles []*projectFile
-	err := db.Find(&projectFiles, &projectFile{
+	err := p.db.Find(&projectFiles, &projectFile{
 		ProjectID: p.ID,
 	}).Error
 	result := make([]IProjectFile, len(projectFiles))
 	for i, file := range projectFiles {
+		file.db = p.db
 		result[i] = file
 	}
 	return result, err
@@ -73,13 +76,14 @@ func (p *project) GetFile(fileName string) (IProjectFile, error) {
 		ProjectID: p.ID,
 		FileName:  fileName,
 	}
-	err := db.First(file, file).Error
+	err := p.db.First(file, file).Error
 	if err != nil {
 		if err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 		return nil, nil
 	}
+	file.db = p.db
 	return file, nil
 }
 
@@ -92,7 +96,7 @@ func (p *project) AddFile(fileName string, content io.Reader) error {
 	if file != nil && file.IsLocked() {
 		return fmt.Errorf("file '%s' is currently locked for uploading", fileName)
 	} else if file == nil {
-		newFile, err = newProjectFile(p.ID, fileName, p.ProjectPath())
+		newFile, err = newProjectFile(p.db, p.ID, fileName, p.ProjectPath())
 		if err != nil {
 			return err
 		}

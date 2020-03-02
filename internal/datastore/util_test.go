@@ -6,12 +6,13 @@ import (
 	"os"
 )
 
-type baseTestSuite struct {
+type TestSuiteWithDatastore struct {
 	suite.Suite
 	storagePath string
+	db          *datastore
 }
 
-func (suite *baseTestSuite) SetupTest() {
+func (suite *TestSuiteWithDatastore) SetupTest() {
 	assert := suite.Require()
 	cfg := &config{
 		Database: databaseConfig{
@@ -21,15 +22,15 @@ func (suite *baseTestSuite) SetupTest() {
 		Indexes: []indexConfig{},
 	}
 	// Initialize the database
-	err := setupDatabase(cfg)
+	var err error
+	suite.db, err = setupDatabase(cfg)
 	assert.Nil(err)
 	// Create a storage path
 	suite.storagePath, err = ioutil.TempDir(os.TempDir(), "")
 	assert.Nil(err)
 }
 
-func (suite *baseTestSuite) TearDownTest() {
-	_ = db.Close()
-	_ = os.RemoveAll(suite.storagePath)
-	db = nil
+func (suite *TestSuiteWithDatastore) TearDownTest() {
+	suite.Require().Nil(suite.db.Close(), "unable to close the database connection")
+	suite.Require().Nil(os.RemoveAll(suite.storagePath), "unable to remove the storage path")
 }

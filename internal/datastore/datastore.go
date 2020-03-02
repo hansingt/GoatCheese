@@ -12,7 +12,18 @@ import (
 	"os"
 )
 
-var db *gorm.DB
+type IDatastore interface {
+	// AllRepositories returns a slice of all repositories defined in the data store.
+	AllRepositories() ([]IRepository, error)
+	// GetRepository returns the Repository for a given name.
+	GetRepository(repositoryName string) (IRepository, error)
+	// Close closes the database connection
+	Close() error
+}
+
+type datastore struct {
+	*gorm.DB
+}
 
 type indexConfig struct {
 	Name  string   `yaml:"name"`
@@ -47,14 +58,13 @@ func readConfigurationFile(configFile string) (*config, error) {
 	return &cfg, nil
 }
 
-func setupDatabase(cfg *config) error {
-	var err error
-	db, err = gorm.Open(cfg.Database.Driver, cfg.Database.ConnectionString)
+func setupDatabase(cfg *config) (*datastore, error) {
+	db, err := gorm.Open(cfg.Database.Driver, cfg.Database.ConnectionString)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// Migrate the Schema
-	return db.AutoMigrate(&projectFile{}).
+	return &datastore{db}, db.AutoMigrate(&projectFile{}).
 		AutoMigrate(&project{}).
 		AutoMigrate(&repository{}).
 		Error
@@ -81,8 +91,74 @@ func slicesEqual(a, b []string) bool {
 	return true
 }
 
-func addRepositories(cfg *config) error {
-	dbRepos, err := AllRepositories()
+/*
+New creates a new data store object and set's up the database if required.
+It reads the configuration options and repositories to setup from a configuration
+file, which's path is given by the `configFile` parameter.
+
+Warning: The data store is a global singleton and thus, this method should only be called once!
+*/
+func New(configFile string) (IDatastore, error) {
+	// Parse the configuration file
+	cfg, err := readConfigurationFile(configFile)
+	if err != nil {
+		return nil, err
+	}
+	// create the storage path if it does not exist
+	_, err = os.Stat(cfg.StoragePath)
+	if err != nil {
+		err = os.MkdirAll(cfg.StoragePath, 0750)
+		if err != nil {
+			return nil, err
+		}
+	}
+	// initialize the database connection and tables
+	var db *datastore
+	db, err = setupDatabase(cfg)
+	if err != nil {
+		return nil, err
+	}
+	// add the repositories from the configuration
+	err = db.addRepositories(cfg)
+	if err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	return db, nil
+}
+
+func (db *datastore) AllRepositories() ([]IRepository, error) {
+	var repositories []*repository
+	err := db.Find(&repositories).Error
+	if err != nil {
+		return nil, err
+	}
+	result := make([]IRepository, len(repositories))
+	for i, repo := range repositories {
+		repo.db = db
+		result[i] = repo
+	}
+	return result, nil
+}
+
+func (db *datastore) GetRepository(repositoryName string) (IRepository, error) {
+	var repo repository
+	err := db.Model(&repo).First(&repo, &repository{
+		RepositoryName: repositoryName,
+	}).Error
+	if err != nil {
+		return nil, err
+	}
+	repo.db = db
+	return &repo, nil
+}
+
+func (db *datastore) Close() error {
+	return db.DB.Close()
+}
+
+func (db *datastore) addRepositories(cfg *config) error {
+	dbRepos, err := db.AllRepositories()
 	if err != nil {
 		return err
 	}
@@ -93,7 +169,7 @@ func addRepositories(cfg *config) error {
 	for _, repo := range cfg.Indexes {
 		dbRepo, exists := existingRepos[repo.Name]
 		if !exists {
-			if _, err := newRepository(repo.Name, repo.Bases, cfg.StoragePath); err != nil {
+			if _, err := newRepository(db, repo.Name, repo.Bases, cfg.StoragePath); err != nil {
 				return err
 			}
 		} else {
@@ -114,7 +190,7 @@ func addRepositories(cfg *config) error {
 			if !slicesEqual(baseNames, repo.Bases) {
 				var bases []IRepository
 				for _, baseName := range repo.Bases {
-					base, err := GetRepository(baseName)
+					base, err := db.GetRepository(baseName)
 					if err != nil {
 						return err
 					}
@@ -127,68 +203,4 @@ func addRepositories(cfg *config) error {
 		}
 	}
 	return nil
-}
-
-/*
-New creates a new data store object and set's up the database if required.
-It reads the configuration options and repositories to setup from a configuration
-file, which's path is given by the `configFile` parameter.
-
-Warning: The data store is a global singleton and thus, this method should only be called once!
-*/
-func New(configFile string) error {
-	// Parse the configuration file
-	cfg, err := readConfigurationFile(configFile)
-	if err != nil {
-		return err
-	}
-	// create the storage path if it does not exist
-	_, err = os.Stat(cfg.StoragePath)
-	if err != nil {
-		err = os.MkdirAll(cfg.StoragePath, 0750)
-		if err != nil {
-			return err
-		}
-	}
-	// initialize the database connection and tables
-	err = setupDatabase(cfg)
-	if err != nil {
-		return err
-	}
-	// add the repositories from the configuration
-	err = addRepositories(cfg)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-/*
-AllRepositories returns a slice of all repositories defined in the data store.
-*/
-func AllRepositories() ([]IRepository, error) {
-	var repositories []*repository
-	err := db.Find(&repositories).Error
-	if err != nil {
-		return nil, err
-	}
-	result := make([]IRepository, len(repositories))
-	for i, repo := range repositories {
-		result[i] = repo
-	}
-	return result, nil
-}
-
-/*
-GetRepository returns the Repository for a given name.
-*/
-func GetRepository(repositoryName string) (IRepository, error) {
-	var repo repository
-	err := db.Model(&repo).First(&repo, &repository{
-		RepositoryName: repositoryName,
-	}).Error
-	if err != nil {
-		return nil, err
-	}
-	return &repo, nil
 }

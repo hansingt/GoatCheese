@@ -18,7 +18,7 @@ func main() {
 		"./templates",
 		"Path to the directory containing the HTML templates to serve (default: ./templates)")
 	flag.Parse()
-	err := datastore.New(*configurationFile)
+	db, err := datastore.New(*configurationFile)
 	if err != nil {
 		panic(err)
 	}
@@ -28,7 +28,7 @@ func main() {
 	server.Use(middleware.Logger())
 	server.Use(middleware.Recover())
 	// Setup the routes
-	if err := web.SetupEchoServer(server, *templatesPath); err != nil {
+	if err := web.SetupEchoServer(server, db, *templatesPath); err != nil {
 		panic(err)
 	}
 	// Start the server

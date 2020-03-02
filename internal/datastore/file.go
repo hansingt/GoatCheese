@@ -35,15 +35,17 @@ type IProjectFile interface {
 
 type projectFile struct {
 	gorm.Model
-	ProjectID    uint   `gorm:"unique_index:idx_project_file;NOT NULL"`
-	FileName     string `gorm:"unique_index:idx_project_file;NOT NULL"`
+	db           *datastore `gorm:"-"`
+	ProjectID    uint       `gorm:"unique_index:idx_project_file;NOT NULL"`
+	FileName     string     `gorm:"unique_index:idx_project_file;NOT NULL"`
 	FileChecksum string
 	Locked       bool `gorm:"NOT NULL"`
 	ProjectPath  string
 }
 
-func newProjectFile(projectID uint, fileName string, projectPath string) (IProjectFile, error) {
+func newProjectFile(db *datastore, projectID uint, fileName string, projectPath string) (IProjectFile, error) {
 	file := &projectFile{
+		db:          db,
 		ProjectID:   projectID,
 		FileName:    fileName,
 		ProjectPath: projectPath,
@@ -62,7 +64,7 @@ func (f *projectFile) Checksum() string {
 
 func (f *projectFile) SetChecksum(checksum string) error {
 	f.FileChecksum = checksum
-	return db.Model(f).Updates(f).Error
+	return f.db.Model(f).Updates(f).Error
 }
 
 func (f *projectFile) IsLocked() bool {
@@ -70,11 +72,11 @@ func (f *projectFile) IsLocked() bool {
 }
 
 func (f *projectFile) Lock() error {
-	return db.Model(f).Update("Locked", true).Error
+	return f.db.Model(f).Update("Locked", true).Error
 }
 
 func (f *projectFile) Unlock() error {
-	return db.Model(f).Update("Locked", false).Error
+	return f.db.Model(f).Update("Locked", false).Error
 }
 
 func (f *projectFile) FilePath() string {
@@ -114,5 +116,5 @@ func (f *projectFile) Write(content io.Reader) error {
 }
 
 func (f *projectFile) Delete() error {
-	return db.Delete(f).Error
+	return f.db.Delete(f).Error
 }

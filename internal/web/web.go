@@ -55,14 +55,14 @@ func (t *templateRenderer) Render(w io.Writer, name string, data interface{}, c 
 SetupEchoServer sets up the Echo web server to process requests to the GoatCheese shop.
 It sets up routes to the endpoints required to be compatible with the python package ecosystem.
 */
-func SetupEchoServer(server *echo.Echo, templatesPath string) error {
+func SetupEchoServer(server *echo.Echo, datastore datastore.IDatastore, templatesPath string) error {
 	templates := &templateRenderer{
 		template.Must(template.ParseGlob(fmt.Sprintf("%s/*.html", templatesPath))),
 	}
 	server.Renderer = templates
 
 	// Root
-	server.GET("/", rootView).Name = "root"
+	server.GET("/", rootView(datastore)).Name = "root"
 
 	// Repositories
 	repos, err := datastore.AllRepositories()
